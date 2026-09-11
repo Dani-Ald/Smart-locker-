@@ -17,7 +17,12 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.daniald.SmartTicket",
+      "minSdkVersion": 26,
+      "targetSdkVersion": 35,
+      "compileSdkVersion": 35,
+      "buildToolsVersion": "35.0.0"
     },
     "web": {
       "output": "static",
