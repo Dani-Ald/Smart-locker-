@@ -68,7 +68,7 @@ export default function HomeScreen() {
         {/* Update badge — prueba visible de EAS Update */}
         <View style={[styles.updateBadge, { borderColor: BRAND_BLUE }]}>
           <ThemedText style={[styles.updateText, { color: BRAND_BLUE }]}>
-            ✨ Actualizado vía EAS Update
+            ⚡ Cuarta actualización via EAS Update
           </ThemedText>
         </View>
 

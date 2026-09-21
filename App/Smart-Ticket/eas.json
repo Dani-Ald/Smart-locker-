@@ -20,6 +20,7 @@
     },
     "preview-arm64": {
       "extends": "preview",
+      "channel": "production",
       "distribution": "internal",
       "android": {
         "buildType": "apk",
