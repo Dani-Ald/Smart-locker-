@@ -6,9 +6,11 @@ import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
+// ─── CONSTANTES DE COLOR ────────────────────────────────────────────────────
 const BRAND_BLUE = '#208AEF';
 const BRAND_BLUE_DARK = '#1A6EC4';
 
+// ─── COMPONENTE PRINCIPAL (pantalla de inicio) ──────────────────────────────
 export default function HomeScreen() {
   const theme = useTheme();
 
@@ -77,6 +79,7 @@ export default function HomeScreen() {
   );
 }
 
+// ─── COMPONENTE LOCAL: ActionCard (tarjeta de acción rápida) ────────────────
 function ActionCard({ emoji, label, bg }: { emoji: string; label: string; bg: string }) {
   return (
     <TouchableOpacity style={[styles.actionCard, { backgroundColor: bg }]} activeOpacity={0.7}>
@@ -86,6 +89,7 @@ function ActionCard({ emoji, label, bg }: { emoji: string; label: string; bg: st
   );
 }
 
+// ─── ESTILOS ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,

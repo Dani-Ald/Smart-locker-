@@ -1,4 +1,6 @@
-﻿# Documento 08 — Sesión: Deploy de la API en Railway y Preparación de EAS
+﻿# Documento 08 — Sesión: Deploy de la API en 
+
+ y Preparación de EAS
 
 **Depende de:** `07-sesion-conexion-atlas-y-primer-consumo-api.md`
 **Proyecto:** Smart-Ticket — Sistema de Boletaje Digital, Valle del Mezquital

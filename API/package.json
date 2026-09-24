@@ -10,7 +10,12 @@
     "seed:limpiar": "node src/seeder.js --limpiar",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["smart-ticket", "express", "mongoose", "mongodb"],
+  "keywords": [
+    "smart-ticket",
+    "express",
+    "mongoose",
+    "mongodb"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
@@ -18,6 +23,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
     "mongoose": "^9.9.5"
   },
   "devDependencies": {

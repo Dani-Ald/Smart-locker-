@@ -1,191 +1,384 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  FlatList,
   ActivityIndicator,
-  StyleSheet,
+  Dimensions,
+  FlatList,
+  Platform,
+  Pressable,
   RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  useColorScheme,
+  View,
 } from 'react-native';
-import { API_BASE_URL } from '../constants/api';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 
-interface Evento {
-  _id: string;
-  nombre: string;
-  categoria: string;
-  municipio: string;
-  fechaHora: string;
-  ubicacion: string;
-  descripcion: string;
-  precioDesde: number;
-  aforoTotal: number;
-  aforoVendido: number;
-  estado: string;
-}
+import EventCard, { EventCardSkeleton } from '@/components/EventCard';
+import { Colors, Spacing } from '@/constants/theme';
+import { Evento, getEventos } from '@/services/eventService';
 
-export default function EventosScreen() {
-  const [eventos, setEventos] = useState<Evento[]>([]);
-  const [cargando, setCargando] = useState<boolean>(true);
-  const [refrescando, setRefrescando] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+const BRAND = '#208AEF';
+const { width: SCREEN_W } = Dimensions.get('window');
 
-  const cargarEventos = async () => {
-    try {
-      setError(null);
-      const respuesta = await fetch(`${API_BASE_URL}/eventos`);
-      if (!respuesta.ok) {
-        throw new Error(`Error en la petición: ${respuesta.status}`);
-      }
-      const data: Evento[] = await respuesta.json();
-      setEventos(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido al cargar eventos');
-    } finally {
-      setCargando(false);
-      setRefrescando(false);
-    }
-  };
+// ── Categorías disponibles ─────────────────────────────────────────────────
+
+const CATEGORIAS = [
+  { key: 'todas',          label: '🎪 Todas' },
+  { key: 'feria_patronal', label: '🎡 Feria' },
+  { key: 'baile',          label: '💃 Baile' },
+  { key: 'palenque',       label: '🐓 Palenque' },
+  { key: 'charreada',      label: '🤠 Charreada' },
+  { key: 'jaripeo',        label: '🐂 Jaripeo' },
+];
+
+// ── Carrusel hero ──────────────────────────────────────────────────────────
+
+const SLIDES = [
+  { emoji: '🎡', titulo: 'Ferias Patronales', sub: 'Tradición y fiesta en el Valle', color: '#208AEF' },
+  { emoji: '💃', titulo: 'Bailes y Conciertos', sub: 'Los mejores artistas del momento', color: '#7c3aed' },
+  { emoji: '🐓', titulo: 'Palenques', sub: 'Emoción y tradición mezquitalense', color: '#b45309' },
+  { emoji: '🤠', titulo: 'Charreadas', sub: 'La esencia de la charrería mexicana', color: '#065f46' },
+  { emoji: '🐂', titulo: 'Jaripeos', sub: 'Adrenalina al máximo', color: '#991b1b' },
+];
+
+function HeroCarousel({ colors }: { colors: typeof Colors.light }) {
+  const [slide, setSlide] = useState(0);
+  const flatRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    cargarEventos();
-  }, []);
-
-  const onRefresh = () => {
-    setRefrescando(true);
-    cargarEventos();
-  };
-
-  if (cargando) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#1e3a8a" />
-        <Text style={styles.mensajeEstado}>Cargando eventos desde Atlas...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.textoError}>No se pudo conectar a la API</Text>
-        <Text style={styles.detalleError}>{error}</Text>
-      </View>
-    );
-  }
+    const timer = setInterval(() => {
+      const next = (slide + 1) % SLIDES.length;
+      setSlide(next);
+      flatRef.current?.scrollToIndex({ index: next, animated: true });
+    }, 3500);
+    return () => clearInterval(timer);
+  }, [slide]);
 
   return (
-    <View style={styles.container}>
+    <View style={heroStyles.wrapper}>
       <FlatList
-        data={eventos}
-        keyExtractor={(item) => item._id}
-        refreshControl={
-          <RefreshControl refreshing={refrescando} onRefresh={onRefresh} />
-        }
-        contentContainerStyle={styles.listContent}
+        ref={flatRef}
+        data={SLIDES}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        scrollEnabled={false}
+        keyExtractor={(_, i) => String(i)}
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.badgeContainer}>
-              <Text style={styles.badgeText}>{item.categoria.replace('_', ' ').toUpperCase()}</Text>
-            </View>
-            <Text style={styles.titulo}>{item.nombre}</Text>
-            <Text style={styles.subtitulo}>{item.municipio} • {item.ubicacion}</Text>
-            <Text style={styles.descripcion} numberOfLines={2}>
-              {item.descripcion}
-            </Text>
-            <View style={styles.cardFooter}>
-              <Text style={styles.precio}>Desde ${item.precioDesde} MXN</Text>
-            </View>
+          <View style={[heroStyles.slide, { backgroundColor: item.color }]}>
+            <Text style={heroStyles.emoji}>{item.emoji}</Text>
+            <Text style={heroStyles.titulo}>{item.titulo}</Text>
+            <Text style={heroStyles.sub}>{item.sub}</Text>
           </View>
         )}
       />
+      {/* Indicadores */}
+      <View style={heroStyles.dots}>
+        {SLIDES.map((_, i) => (
+          <View key={i} style={[heroStyles.dot, i === slide && heroStyles.dotActive]} />
+        ))}
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f1f5f9',
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
+const heroStyles = StyleSheet.create({
+  wrapper: { borderRadius: 20, overflow: 'hidden', marginBottom: Spacing.three },
+  slide: {
+    width: SCREEN_W - Spacing.four * 2,
+    paddingVertical: Spacing.five,
+    paddingHorizontal: Spacing.four,
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#f1f5f9',
+    gap: Spacing.one,
   },
-  listContent: {
-    padding: 16,
-    gap: 12,
+  emoji: { fontSize: 48 },
+  titulo: { fontSize: 22, fontWeight: '800', color: '#fff', textAlign: 'center' },
+  sub: { fontSize: 14, color: 'rgba(255,255,255,0.82)', textAlign: 'center' },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingVertical: 10, position: 'absolute', bottom: 0, width: '100%' },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.4)' },
+  dotActive: { backgroundColor: '#fff', width: 18 },
+});
+
+// ── Chip de filtro ─────────────────────────────────────────────────────────
+
+function FilterChip({
+  label,
+  selected,
+  onPress,
+  colors,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  colors: typeof Colors.light;
+}) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  function handlePress() {
+    scale.value = withSpring(0.92, {}, () => { scale.value = withSpring(1); });
+    onPress();
+  }
+
+  return (
+    <Animated.View style={animStyle}>
+      <Pressable
+        style={[
+          chipStyles.chip,
+          selected
+            ? { backgroundColor: BRAND }
+            : { backgroundColor: colors.backgroundElement },
+        ]}
+        onPress={handlePress}>
+        <Text style={[chipStyles.label, { color: selected ? '#fff' : colors.textSecondary }]}>
+          {label}
+        </Text>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+const chipStyles = StyleSheet.create({
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
   },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  badgeContainer: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#e0e7ff',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginBottom: 8,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#3730a3',
-  },
-  titulo: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 4,
-  },
-  subtitulo: {
-    fontSize: 13,
-    color: '#64748b',
-    marginBottom: 8,
-  },
-  descripcion: {
-    fontSize: 14,
-    color: '#334155',
-    lineHeight: 20,
-  },
-  cardFooter: {
-    marginTop: 12,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+  label: { fontSize: 13, fontWeight: '600' },
+});
+
+// ── Pantalla principal ─────────────────────────────────────────────────────
+
+export default function EventosScreen() {
+  const scheme = useColorScheme();
+  const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
+
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [refrescando, setRefrescando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState('');
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('todas');
+
+  const cargarEventos = useCallback(async (esRefresh = false) => {
+    setError(null);
+    if (esRefresh) setRefrescando(true);
+    else setCargando(true);
+
+    try {
+      const data = await getEventos();
+      setEventos(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar eventos.');
+    } finally {
+      setCargando(false);
+      setRefrescando(false);
+    }
+  }, []);
+
+  useEffect(() => { cargarEventos(); }, [cargarEventos]);
+
+  // Filtrado en tiempo real
+  const eventosFiltrados = useMemo(() => {
+    let lista = eventos;
+    if (categoriaSeleccionada !== 'todas') {
+      lista = lista.filter(e => e.categoria === categoriaSeleccionada);
+    }
+    if (busqueda.trim()) {
+      const q = busqueda.trim().toLowerCase();
+      lista = lista.filter(
+        e =>
+          e.nombre.toLowerCase().includes(q) ||
+          e.municipio.toLowerCase().includes(q) ||
+          e.ubicacion.toLowerCase().includes(q),
+      );
+    }
+    return lista;
+  }, [eventos, categoriaSeleccionada, busqueda]);
+
+  const bg = colors.background;
+  const cardBg = colors.backgroundElement;
+  const textColor = colors.text;
+  const textSecondary = colors.textSecondary;
+
+  // ── Render item del grid ──────────────────────────────────────────────────
+
+  const renderItem = useCallback(({ item, index }: { item: Evento; index: number }) => (
+    <Animated.View entering={FadeInDown.delay(index * 60).springify()} style={styles.gridItem}>
+      <EventCard evento={item} />
+    </Animated.View>
+  ), []);
+
+  // ── Header del FlatList (carrusel + buscador + filtros) ───────────────────
+
+  const ListHeader = (
+    <View>
+      {/* Carrusel hero */}
+      <HeroCarousel colors={colors} />
+
+      {/* Buscador */}
+      <View style={[styles.searchRow, { backgroundColor: cardBg }]}>
+        <Text style={styles.searchIcon}>🔍</Text>
+        <TextInput
+          style={[styles.searchInput, { color: textColor }]}
+          placeholder="Buscar eventos, municipio…"
+          placeholderTextColor={textSecondary}
+          value={busqueda}
+          onChangeText={setBusqueda}
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+        />
+        {busqueda.length > 0 && Platform.OS !== 'ios' && (
+          <TouchableOpacity onPress={() => setBusqueda('')}>
+            <Text style={{ color: textSecondary, fontSize: 16 }}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Chips de categoría */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipsRow}>
+        {CATEGORIAS.map(cat => (
+          <FilterChip
+            key={cat.key}
+            label={cat.label}
+            selected={categoriaSeleccionada === cat.key}
+            onPress={() => setCategoriaSeleccionada(cat.key)}
+            colors={colors}
+          />
+        ))}
+      </ScrollView>
+
+      {/* Contador de resultados */}
+      <Animated.View entering={FadeInUp.springify()}>
+        <Text style={[styles.contador, { color: textSecondary }]}>
+          {cargando
+            ? 'Cargando…'
+            : `${eventosFiltrados.length} evento${eventosFiltrados.length !== 1 ? 's' : ''} encontrado${eventosFiltrados.length !== 1 ? 's' : ''}`}
+        </Text>
+      </Animated.View>
+    </View>
+  );
+
+  // ── Skeletons ─────────────────────────────────────────────────────────────
+
+  if (cargando) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <HeroCarousel colors={colors} />
+          <View style={[styles.searchRow, { backgroundColor: cardBg }]}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <View style={[styles.skeletonSearch, { backgroundColor: colors.backgroundSelected }]} />
+          </View>
+          <View style={styles.grid}>
+            {[...Array(6)].map((_, i) => (
+              <View key={i} style={styles.gridItem}>
+                <EventCardSkeleton />
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Error ─────────────────────────────────────────────────────────────────
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
+        <View style={styles.center}>
+          <Text style={styles.errorEmoji}>📡</Text>
+          <Text style={[styles.errorTitulo, { color: textColor }]}>Sin conexión</Text>
+          <Text style={[styles.errorSub, { color: textSecondary }]}>{error}</Text>
+          <TouchableOpacity
+            style={[styles.retryBtn, { backgroundColor: BRAND }]}
+            onPress={() => cargarEventos()}>
+            <Text style={styles.retryText}>Reintentar</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Lista principal ───────────────────────────────────────────────────────
+
+  return (
+    <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
+      <FlatList
+        data={eventosFiltrados}
+        keyExtractor={item => item._id}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={ListHeader}
+        renderItem={renderItem}
+        refreshControl={
+          <RefreshControl
+            refreshing={refrescando}
+            onRefresh={() => cargarEventos(true)}
+            tintColor={BRAND}
+            colors={[BRAND]}
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyEmoji}>🔎</Text>
+            <Text style={[styles.emptyTitulo, { color: textColor }]}>Sin resultados</Text>
+            <Text style={[styles.emptySub, { color: textSecondary }]}>
+              Prueba con otra búsqueda o categoría
+            </Text>
+          </View>
+        }
+      />
+    </SafeAreaView>
+  );
+}
+
+// ── Estilos ────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  safe: { flex: 1 },
+  scroll: { padding: Spacing.four, paddingBottom: 100, gap: Spacing.three },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  row: { gap: Spacing.two },
+  gridItem: { flex: 1 },
+  searchRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    alignItems: 'center',
+    borderRadius: 14,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 4,
+    gap: Spacing.two,
+    marginBottom: Spacing.two,
   },
-  precio: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#059669',
-  },
-  mensajeEstado: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#64748b',
-  },
-  textoError: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#dc2626',
-    marginBottom: 4,
-  },
-  detalleError: {
-    fontSize: 13,
-    color: '#64748b',
-    textAlign: 'center',
-  },
+  searchIcon: { fontSize: 16 },
+  searchInput: { flex: 1, fontSize: 15 },
+  skeletonSearch: { flex: 1, height: 18, borderRadius: 8 },
+  chipsRow: { flexDirection: 'row', gap: Spacing.two, paddingBottom: Spacing.two },
+  contador: { fontSize: 13, fontWeight: '600', marginBottom: Spacing.two },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.two, padding: Spacing.four },
+  errorEmoji: { fontSize: 52 },
+  errorTitulo: { fontSize: 20, fontWeight: '700' },
+  errorSub: { fontSize: 14, textAlign: 'center' },
+  retryBtn: { marginTop: Spacing.two, paddingHorizontal: Spacing.four, paddingVertical: 12, borderRadius: 14 },
+  retryText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  emptyContainer: { alignItems: 'center', paddingVertical: Spacing.five, gap: Spacing.two },
+  emptyEmoji: { fontSize: 48 },
+  emptyTitulo: { fontSize: 18, fontWeight: '700' },
+  emptySub: { fontSize: 14, textAlign: 'center' },
 });
