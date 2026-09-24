@@ -28,6 +28,9 @@ export default function AppTabs() {
           <TabTrigger name="dashboard" href="/dashboard" asChild>
             <TabButton>Mi cuenta</TabButton>
           </TabTrigger>
+          <TabTrigger name="create-event" href="/create-event" asChild>
+            <TabButton>Publicar</TabButton>
+          </TabTrigger>
         </CustomTabList>
       </TabList>
     </Tabs>
