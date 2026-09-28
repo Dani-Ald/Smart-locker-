@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useSessionContext } from '@/context/SessionContext';
 
 // ─── CONSTANTES DE COLOR ────────────────────────────────────────────────────
 const BRAND_BLUE = '#208AEF';
@@ -13,6 +14,8 @@ const BRAND_BLUE_DARK = '#1A6EC4';
 // ─── COMPONENTE PRINCIPAL (pantalla de inicio) ──────────────────────────────
 export default function HomeScreen() {
   const theme = useTheme();
+  const { session } = useSessionContext();
+  const nombreUsuario = session?.nombre ? session.nombre.split(' ')[0] : null;
 
   return (
     <ThemedView style={styles.container}>
@@ -24,7 +27,9 @@ export default function HomeScreen() {
             <ThemedText style={styles.logoText}>ST</ThemedText>
           </View>
           <View>
-            <ThemedText type="small" themeColor="textSecondary">Bienvenido a</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {nombreUsuario ? `¡Hola, ${nombreUsuario}! 👋` : 'Bienvenido a'}
+            </ThemedText>
             <ThemedText type="subtitle" style={styles.brandName}>Smart Ticket</ThemedText>
           </View>
         </View>
