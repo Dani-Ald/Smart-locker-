@@ -70,7 +70,7 @@ export default function RegisterScreen() {
       });
       setExito(true);
       // Volver a login después de 2 s
-      setTimeout(() => router.replace('/(auth)/login'), 2000);
+      setTimeout(() => router.replace('/(auth)/login' as any), 2000);
     } catch (err) {
       if (err instanceof AuthError) {
         setError(err.message);

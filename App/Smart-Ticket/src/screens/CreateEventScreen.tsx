@@ -17,8 +17,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useSessionContext } from '@/context/SessionContext';
+import Toast from '@/components/Toast';
 import { createEvento } from '@/services/eventService';
-import { Colors, Spacing } from '@/constants/theme';
+import { AppColors, Colors, Spacing } from '@/constants/theme';
 
 const BRAND = '#208AEF';
 const BRAND_DARK = '#1A6EC4';
@@ -57,7 +58,7 @@ function parseDateTime(fecha: string, hora: string): string {
 
 // ── Sub-componentes ────────────────────────────────────────────────────────
 
-function FormLabel({ children, colors }: { children: string; colors: typeof Colors.light }) {
+function FormLabel({ children, colors }: { children: string; colors: AppColors }) {
   return (
     <Text style={[formStyles.label, { color: colors.textSecondary }]}>{children}</Text>
   );
@@ -66,7 +67,7 @@ function FormLabel({ children, colors }: { children: string; colors: typeof Colo
 function FormInput({
   colors,
   ...props
-}: React.ComponentProps<typeof TextInput> & { colors: typeof Colors.light }) {
+}: React.ComponentProps<typeof TextInput> & { colors: AppColors }) {
   return (
     <TextInput
       style={[formStyles.input, {
@@ -113,7 +114,6 @@ export default function CreateEventScreen() {
 
   // ── Estado UI ────────────────────────────────────────────────────────────
   const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState(false);
   const [mostrarMunicipios, setMostrarMunicipios] = useState(false);
 
@@ -138,9 +138,11 @@ export default function CreateEventScreen() {
 
   // ── Enviar ───────────────────────────────────────────────────────────────
   async function handleSubmit() {
-    setError(null);
     const mensajeError = validar();
-    if (mensajeError) { setError(mensajeError); return; }
+    if (mensajeError) {
+      Toast.error('Campos incompletos', mensajeError);
+      return;
+    }
 
     setCargando(true);
     try {
@@ -157,18 +159,22 @@ export default function CreateEventScreen() {
         organizadorId: session?.id,
       });
 
+      Toast.success('¡Evento creado!', 'Guardado como borrador. Redirigiendo…');
       setExito(true);
       setTimeout(() => router.replace('/eventos'), 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear el evento.');
+      Toast.error(
+        'Error al crear el evento',
+        err instanceof Error ? err.message : 'Intenta de nuevo.',
+      );
     } finally {
       setCargando(false);
     }
   }
 
-  const bg = colors.background;
-  const cardBg = colors.backgroundElement;
-  const textColor = colors.text;
+  const bg          = colors.background;
+  const cardBg      = colors.backgroundElement;
+  const textColor   = colors.text;
   const textSecondary = colors.textSecondary;
 
   // ── Pantalla de éxito ────────────────────────────────────────────────────
@@ -408,12 +414,7 @@ export default function CreateEventScreen() {
             </View>
           </Animated.View>
 
-          {/* Error */}
-          {error && (
-            <Animated.View entering={FadeInDown} style={styles.errorBanner}>
-              <Text style={styles.errorText}>⚠️ {error}</Text>
-            </Animated.View>
-          )}
+
 
           {/* Botón publicar */}
           <Animated.View entering={FadeInDown.delay(300).springify()}>

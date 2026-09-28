@@ -19,7 +19,7 @@ import Animated, {
   SlideInRight,
 } from 'react-native-reanimated';
 
-import { Colors, Spacing } from '@/constants/theme';
+import { AppColors, Colors, Spacing } from '@/constants/theme';
 import { Evento, getEventoById } from '@/services/eventService';
 
 const BRAND = '#208AEF';
@@ -74,7 +74,7 @@ function InfoRow({
   icon: string;
   label: string;
   value: string;
-  colors: typeof Colors.light;
+  colors: AppColors;
 }) {
   return (
     <View style={infoStyles.row}>

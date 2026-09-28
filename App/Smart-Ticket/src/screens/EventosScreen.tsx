@@ -24,7 +24,9 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import EventCard, { EventCardSkeleton } from '@/components/EventCard';
-import { Colors, Spacing } from '@/constants/theme';
+import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
+import { AppColors, Colors, Spacing } from '@/constants/theme';
 import { Evento, getEventos } from '@/services/eventService';
 
 const BRAND = '#208AEF';
@@ -51,7 +53,7 @@ const SLIDES = [
   { emoji: '🐂', titulo: 'Jaripeos', sub: 'Adrenalina al máximo', color: '#991b1b' },
 ];
 
-function HeroCarousel({ colors }: { colors: typeof Colors.light }) {
+function HeroCarousel({ colors }: { colors: AppColors }) {
   const [slide, setSlide] = useState(0);
   const flatRef = useRef<FlatList>(null);
 
@@ -120,7 +122,7 @@ function FilterChip({
   label: string;
   selected: boolean;
   onPress: () => void;
-  colors: typeof Colors.light;
+  colors: AppColors;
 }) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -300,16 +302,10 @@ export default function EventosScreen() {
   if (error) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
-        <View style={styles.center}>
-          <Text style={styles.errorEmoji}>📡</Text>
-          <Text style={[styles.errorTitulo, { color: textColor }]}>Sin conexión</Text>
-          <Text style={[styles.errorSub, { color: textSecondary }]}>{error}</Text>
-          <TouchableOpacity
-            style={[styles.retryBtn, { backgroundColor: BRAND }]}
-            onPress={() => cargarEventos()}>
-            <Text style={styles.retryText}>Reintentar</Text>
-          </TouchableOpacity>
-        </View>
+        <ErrorState
+          message={error}
+          onRetry={() => cargarEventos()}
+        />
       </SafeAreaView>
     );
   }
@@ -336,13 +332,12 @@ export default function EventosScreen() {
           />
         }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>🔎</Text>
-            <Text style={[styles.emptyTitulo, { color: textColor }]}>Sin resultados</Text>
-            <Text style={[styles.emptySub, { color: textSecondary }]}>
-              Prueba con otra búsqueda o categoría
-            </Text>
-          </View>
+          <EmptyState
+            emoji="🔎"
+            title="Sin resultados"
+            subtitle="Prueba con otra búsqueda o categoría"
+            delay={100}
+          />
         }
       />
     </SafeAreaView>

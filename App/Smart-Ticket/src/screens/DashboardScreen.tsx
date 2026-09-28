@@ -20,8 +20,12 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import EventCard, { EventCardSkeleton } from '@/components/EventCard';
+import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
+import LoadingDots from '@/components/LoadingDots';
+import Toast from '@/components/Toast';
 import { useSessionContext } from '@/context/SessionContext';
-import { Colors, Spacing } from '@/constants/theme';
+import { AppColors, Colors, Spacing } from '@/constants/theme';
 import { Evento, getEventos } from '@/services/eventService';
 
 const BRAND = '#208AEF';
@@ -66,7 +70,7 @@ function StatCard({
   label: string;
   emoji: string;
   delay: number;
-  colors: typeof Colors.light;
+  colors: AppColors;
 }) {
   return (
     <Animated.View
@@ -128,7 +132,7 @@ export default function DashboardScreen() {
   useEffect(() => {
     // Si no hay sesión y ya terminó de cargar → redirigir a login
     if (!sessionLoading && !session) {
-      router.replace('/(auth)/login');
+      router.replace('/(auth)/login' as any);
       return;
     }
     cargarEventos();
@@ -136,8 +140,9 @@ export default function DashboardScreen() {
 
   async function handleLogout() {
     setCerrandoSesion(true);
+    Toast.info('Cerrando sesión…', 'Hasta pronto 👋');
     await clearSession();
-    router.replace('/(auth)/login');
+    router.replace('/(auth)/login' as any);
   }
 
   // Stats calculadas en cliente
@@ -230,7 +235,7 @@ export default function DashboardScreen() {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={BRAND} />
+          <LoadingDots />
         </View>
       </SafeAreaView>
     );
@@ -241,16 +246,10 @@ export default function DashboardScreen() {
       <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
         <ScrollView contentContainerStyle={styles.scroll}>
           {ListHeader}
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorEmoji}>📡</Text>
-            <Text style={[styles.errorTitulo, { color: textColor }]}>Sin conexión</Text>
-            <Text style={[styles.errorSub, { color: textSecondary }]}>{error}</Text>
-            <TouchableOpacity
-              style={[styles.retryBtn, { backgroundColor: BRAND }]}
-              onPress={() => cargarEventos()}>
-              <Text style={styles.retryText}>Reintentar</Text>
-            </TouchableOpacity>
-          </View>
+          <ErrorState
+            message={error}
+            onRetry={() => cargarEventos()}
+          />
         </ScrollView>
       </SafeAreaView>
     );
@@ -289,13 +288,12 @@ export default function DashboardScreen() {
         }
         ListEmptyComponent={
           !cargando ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyEmoji}>🎪</Text>
-              <Text style={[styles.emptyTitulo, { color: textColor }]}>Sin eventos por ahora</Text>
-              <Text style={[styles.emptySub, { color: textSecondary }]}>
-                Vuelve pronto para ver nuevos eventos
-              </Text>
-            </View>
+            <EmptyState
+              emoji="🎪"
+              title="Sin eventos por ahora"
+              subtitle="Vuelve pronto para ver nuevos eventos"
+              delay={100}
+            />
           ) : null
         }
       />

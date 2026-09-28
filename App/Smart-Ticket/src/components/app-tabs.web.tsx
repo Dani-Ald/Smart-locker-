@@ -25,10 +25,10 @@ export default function AppTabs() {
           <TabTrigger name="eventos" href="/eventos" asChild>
             <TabButton>Eventos</TabButton>
           </TabTrigger>
-          <TabTrigger name="dashboard" href="/dashboard" asChild>
+          <TabTrigger name="dashboard" href={'/dashboard' as any} asChild>
             <TabButton>Mi cuenta</TabButton>
           </TabTrigger>
-          <TabTrigger name="create-event" href="/create-event" asChild>
+          <TabTrigger name="create-event" href={'/create-event' as any} asChild>
             <TabButton>Publicar</TabButton>
           </TabTrigger>
         </CustomTabList>
