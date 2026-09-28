@@ -1,4 +1,4 @@
-﻿# 📱 Plan de Implementación — App Móvil Smart-Ticket
+# 📱 Plan de Implementación — App Móvil Smart-Ticket
 > Sesión 13 · Fecha de inicio: 2026-09-24
 
 Referencia base: `App/analisis_web_entrada.md`
@@ -76,19 +76,19 @@ npm install react-native-toast-message
 
 ### Fase 5 — Detalle de evento
 
-- [ ] **5.1** `app/event/[id].tsx` — Imagen full-width, info completa, botón "Comprar" (placeholder)
+- [x] **5.1** `app/event/[id].tsx` — Imagen full-width, info completa, botón "Comprar" (placeholder)
 
 ### Fase 6 — Crear evento (organizador)
 
-- [ ] **6.1** `app/(tabs)/create-event.tsx` — Formulario completo, `POST /api/events`
+- [x] **6.1** `app/(tabs)/create-event.tsx` — Formulario completo, `POST /api/events`
 
 ### Fase 7 — Pulido
 
-- [ ] **7.1** `src/constants/theme.ts` — Tokens de color, tipografía, spacing
-- [ ] **7.2** Toast global de errores/éxitos
-- [ ] **7.3** Empty states y estados de error
-- [ ] **7.4** Animaciones con `react-native-reanimated`
-- [ ] **7.5** EAS Update para OTA
+- [x] **7.1** `src/constants/theme.ts` — Tokens de color, tipografía, spacing
+- [x] **7.2** Toast global de errores/éxitos
+- [x] **7.3** Empty states y estados de error
+- [x] **7.4** Animaciones con `react-native-reanimated`
+- [x] **7.5** EAS Update para OTA
 
 ---
 
@@ -116,7 +116,4 @@ Prioridad: tener el flujo completo **login → ver eventos → dashboard → log
 | Fecha | Nota |
 |---|---|
 | 2026-09-24 | Documento creado. App web analizada, plan definido. Pendiente iniciar Fase 1. |
-
-
-
-
+| 2026-09-28 | **Fase 7 completada.** `theme.ts` ampliado (Brand, FontSize, Radius, Shadow, Duration). `Toast.tsx` global con `ToastRoot` en root layout. Componentes `EmptyState`, `ErrorState`, `LoadingDots` creados y usados en EventosScreen/DashboardScreen/CreateEventScreen. EAS Update con `channel` declarado en preview y production. |
