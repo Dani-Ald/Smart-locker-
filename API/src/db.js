@@ -11,8 +11,8 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log(`✅ MongoDB conectado → ${process.env.MONGODB_URI}`);
+    await mongoose.connect(process.env.MONGODB_URI, { dbName: 'test' });
+    console.log(`✅ MongoDB conectado a la BD 'test' → ${process.env.MONGODB_URI}`);
   } catch (error) {
     console.error('❌ Error de conexión a MongoDB:', error.message);
     process.exit(1); // Detiene el servidor si no hay base de datos
@@ -20,3 +20,4 @@ const connectDB = async () => {
 };
 
 module.exports = connectDB;
+

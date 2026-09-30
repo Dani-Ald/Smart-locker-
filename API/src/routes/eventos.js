@@ -1,30 +1,28 @@
-﻿/**
- * routes/eventos.js â€” Endpoints del recurso /api/v1/eventos.
- *
- * Implementados ahora (solo lectura):
- *   GET /api/v1/eventos        â†’ lista eventos publicados (filtros: categoria, municipio, fecha)
- *   GET /api/v1/eventos/:id    â†’ detalle de un evento por ID
- *
- * Pendientes (Paso 7 del plan):
- *   POST   /api/v1/eventos          â†’ crear evento (estado inicial: borrador)
- *   PUT    /api/v1/eventos/:id      â†’ editar evento
- *   POST   /api/v1/eventos/:id/publicar â†’ cambiar estado a publicado
+/**
+ * routes/eventos.js — Endpoints del recurso /api/v1/eventos.
  */
 const express = require('express');
 const router  = express.Router();
 const Evento  = require('../models/Evento');
 
-// â”€â”€ GET /api/v1/eventos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Lista todos los eventos en estado "publicado".
-// Query params opcionales: ?categoria=palenque  ?municipio=Ixmiquilpan  ?fecha=2026-10-01
+// ── GET /api/v1/eventos ──────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
-    const { categoria, municipio, fecha } = req.query;
-    const filtro = { estado: 'publicado' };
+    const { categoria, municipio, fecha, estado } = req.query;
+    const filtro = {};
 
-    if (categoria) filtro.categoria = categoria;
-    if (municipio) filtro.municipio = { $regex: municipio, $options: 'i' }; // bÃºsqueda parcial
-    if (fecha)     filtro.fechaHora = { $gte: new Date(fecha) };
+    if (estado) {
+      filtro.estado = estado;
+    }
+    if (categoria) {
+      filtro.categoria = { $regex: categoria, $options: 'i' };
+    }
+    if (municipio) {
+      filtro.municipio = { $regex: municipio, $options: 'i' };
+    }
+    if (fecha) {
+      filtro.fechaHora = { $gte: new Date(fecha) };
+    }
 
     const eventos = await Evento.find(filtro).sort({ fechaHora: 1 });
     res.json(eventos);
@@ -33,62 +31,65 @@ router.get('/', async (req, res) => {
   }
 });
 
-// â”€â”€ GET /api/v1/eventos/:id â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Detalle de un evento por su _id de MongoDB.
+// ── GET /api/v1/eventos/:id ──────────────────────────────────────────────────
 router.get('/:id', async (req, res) => {
   try {
     const evento = await Evento.findById(req.params.id);
     if (!evento) return res.status(404).json({ error: 'Evento no encontrado' });
     res.json(evento);
   } catch (err) {
-    // Si el id tiene formato invÃ¡lido, Mongoose lanza CastError
     if (err.name === 'CastError') {
-      return res.status(400).json({ error: 'ID de evento invÃ¡lido' });
+      return res.status(400).json({ error: 'ID de evento inválido' });
     }
     res.status(500).json({ error: err.message });
   }
 });
 
-
 // ── POST /api/v1/eventos ─────────────────────────────────────────────────────
-// Crea un nuevo evento en estado 'borrador'.
-// Agregado en Sesion 13 para soportar CreateEventScreen en la app movil.
 router.post('/', async (req, res) => {
   try {
     const {
       organizadorId, nombre, categoria, municipio,
-      fechaHora, ubicacion, descripcion, imagenUrl,
-      precioDesde, aforoTotal,
+      fechaHora, ubicacion, descripcion, imagen, imagenUrl,
+      precioBoleto, precioDesde, cantidadBoletos, aforoTotal, estado,
     } = req.body;
 
-    // Validacion minima server-side
-    if (!nombre || !categoria || !municipio || !fechaHora || !aforoTotal) {
+    if (!nombre || !fechaHora) {
       return res.status(400).json({
-        error: 'Faltan campos obligatorios: nombre, categoria, municipio, fechaHora, aforoTotal.',
+        error: 'Faltan campos obligatorios: nombre y fechaHora.',
       });
     }
+
+    const img = (imagenUrl || imagen || '').trim();
+    const precio = precioDesde !== undefined ? Number(precioDesde) : (precioBoleto !== undefined ? Number(precioBoleto) : 0);
+    const aforo = aforoTotal !== undefined ? Number(aforoTotal) : (cantidadBoletos !== undefined ? Number(cantidadBoletos) : 100);
 
     const evento = await Evento.create({
       organizadorId: organizadorId || null,
       nombre: nombre.trim(),
-      categoria,
-      municipio: municipio.trim(),
+      categoria: categoria ? categoria.trim() : 'General',
+      municipio: municipio ? municipio.trim() : (ubicacion ? ubicacion.trim() : 'Valle del Mezquital'),
       fechaHora: new Date(fechaHora),
       ubicacion: ubicacion?.trim() ?? '',
       descripcion: descripcion?.trim() ?? '',
-      imagenUrl: imagenUrl?.trim() ?? '',
-      precioDesde: Number(precioDesde) || 0,
-      aforoTotal: Number(aforoTotal),
-      estado: 'borrador',
+      imagen: img,
+      imagenUrl: img,
+      precioBoleto: precio,
+      precioDesde: precio,
+      cantidadBoletos: aforo,
+      aforoTotal: aforo,
+      estado: estado || 'publicado',
     });
 
-    res.status(201).json(evento);
+    return res.status(201).json(evento);
   } catch (err) {
+    console.error('[create event error]', err);
     if (err.name === 'ValidationError') {
       return res.status(400).json({ error: err.message });
     }
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
+
 module.exports = router;
 
