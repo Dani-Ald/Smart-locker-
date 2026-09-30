@@ -1,77 +1,97 @@
+const { Resend } = require('resend');
 const nodemailer = require('nodemailer');
 
-/**
- * Servicio para envío de correos transaccionales (Verificación de cuenta, etc.)
- */
-async function createTransporter() {
-  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
-    return nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-  }
-
-  // Fallback: Ethereal test SMTP (si no se configuran llaves SMTP en .env)
-  const testAccount = await nodemailer.createTestAccount();
-  return nodemailer.createTransport({
-    host: 'smtp.ethereal.email',
-    port: 587,
-    secure: false,
-    auth: {
-      user: testAccount.user,
-      pass: testAccount.pass,
-    },
-  });
+let resendClient = null;
+if (process.env.RESEND_API_KEY) {
+  resendClient = new Resend(process.env.RESEND_API_KEY);
 }
 
 /**
- * Envía el correo de verificación al nuevo usuario.
+ * Envía el correo transaccional con el código de 6 dígitos.
  */
-async function sendVerificationEmail(destinatario, nombre, token) {
-  try {
-    const transporter = await createTransporter();
-    const appUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3000}`;
-    const verificationUrl = `${appUrl}/api/v1/usuarios/verificar?token=${token}`;
-
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-        <h2 style="color: #208AEF; text-align: center;">Smart Ticket</h2>
-        <h3>¡Hola, ${nombre}! 👋</h3>
-        <p>Gracias por registrarte en <strong>Smart Ticket</strong>. Para activar completamente tu cuenta, por favor confirma tu correo electrónico haciendo clic en el siguiente botón:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${verificationUrl}" style="background-color: #208AEF; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Verificar mi cuenta</a>
-        </div>
-        <p style="font-size: 12px; color: #64748b; text-align: center;">
-          Si no puedes hacer clic en el botón, copia y pega este enlace en tu navegador:<br>
-          <a href="${verificationUrl}">${verificationUrl}</a>
-        </p>
+async function sendVerificationCode(destinatario, nombre, codigo) {
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <span style="font-size: 40px;">🎟️</span>
+        <h2 style="color: #208AEF; margin: 8px 0 0 0; font-size: 24px;">Smart Ticket</h2>
       </div>
-    `;
+      <h3 style="color: #1e293b; font-size: 18px; margin-bottom: 8px;">¡Hola, ${nombre}! 👋</h3>
+      <p style="color: #475569; font-size: 14px; line-height: 1.5; margin-bottom: 24px;">
+        Gracias por registrarte en Smart Ticket. Usa el siguiente código de 6 dígitos para verificar tu cuenta:
+      </p>
+      <div style="text-align: center; margin: 24px 0; background-color: #f1f5f9; padding: 16px; border-radius: 12px; border: 1px solid #cbd5e1;">
+        <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #208AEF;">${codigo}</span>
+      </div>
+      <p style="color: #64748b; font-size: 12px; text-align: center; margin-top: 24px;">
+        Este código expirará en 15 minutos.<br>
+        Si no solicitaste este registro, puedes ignorar este mensaje.
+      </p>
+    </div>
+  `;
+
+  // 1. Resend API (Si existe la variable RESEND_API_KEY)
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const resend = resendClient || new Resend(process.env.RESEND_API_KEY);
+      const data = await resend.emails.send({
+        from: process.env.RESEND_FROM || 'Smart Ticket <onboarding@resend.dev>',
+        to: destinatario,
+        subject: `🎟️ Tu código de verificación es ${codigo}`,
+        html: htmlContent,
+      });
+      console.log(`✉️ [Resend API] Correo enviado exitosamente a ${destinatario} (ID: ${data.id || JSON.stringify(data)})`);
+      return data;
+    } catch (err) {
+      console.error('❌ Error enviando correo con Resend API:', err.message);
+    }
+  }
+
+  // 2. Fallback SMTP (Nodemailer)
+  try {
+    let transporter;
+    if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+      transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
+    } else {
+      const testAccount = await nodemailer.createTestAccount();
+      transporter = nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        secure: false,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass,
+        },
+      });
+    }
 
     const info = await transporter.sendMail({
-      from: `"Smart Ticket" <${process.env.SMTP_FROM || 'no-reply@smartticket.com'}>`,
+      from: process.env.SMTP_FROM || '"Smart Ticket" <no-reply@smartticket.com>',
       to: destinatario,
-      subject: '🎟️ Confirma tu correo electrónico - Smart Ticket',
+      subject: `🎟️ Tu código de verificación es ${codigo}`,
       html: htmlContent,
     });
 
-    console.log(`✉️ Correo de verificación enviado a: ${destinatario}`);
+    console.log(`✉️ [Nodemailer] Correo enviado a ${destinatario}. Código: ${codigo}`);
     const previewUrl = nodemailer.getTestMessageUrl(info);
     if (previewUrl) {
-      console.log(`🔗 Vista previa del correo enviada (Ethereal): ${previewUrl}`);
+      console.log(`🔗 Vista previa (Ethereal): ${previewUrl}`);
     }
-    console.log(`🔗 Enlace directo de verificación: ${verificationUrl}`);
     return info;
   } catch (error) {
-    console.error('❌ Error enviando correo de verificación:', error.message);
+    console.error('❌ Error en el servicio de correo:', error.message);
+    console.log(`🔑 CÓDIGO DE VERIFICACIÓN (Consola Fallback): ${codigo} para ${destinatario}`);
   }
 }
 
 module.exports = {
-  sendVerificationEmail,
+  sendVerificationCode,
 };

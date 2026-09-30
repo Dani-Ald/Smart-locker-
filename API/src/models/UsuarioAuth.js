@@ -11,6 +11,8 @@ const usuarioAuthSchema = new mongoose.Schema(
     passwordHash:      { type: String, required: true },
     isVerified:        { type: Boolean, default: false },
     verificationToken: { type: String, default: null },
+    codigoVerificacion:{ type: String, default: null },
+    codigoExpira:      { type: Date, default: null },
   },
   { timestamps: true }
 );

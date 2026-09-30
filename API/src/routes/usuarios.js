@@ -2,15 +2,17 @@
  * routes/usuarios.js — Endpoints de autenticación para usuarios compradores.
  *
  * Rutas:
- *   POST /api/v1/usuarios/registro  -> Crear cuenta nueva y enviar correo de verificación
- *   GET  /api/v1/usuarios/verificar -> Confirmar token de correo
- *   POST /api/v1/usuarios/login     -> Iniciar sesión
+ *   POST /api/v1/usuarios/registro          -> Crear cuenta nueva y enviar código de 6 dígitos
+ *   POST /api/v1/usuarios/verificar-codigo  -> Confirmar código PIN de 6 dígitos
+ *   POST /api/v1/usuarios/reenviar-codigo   -> Solicitar nuevo código de 6 dígitos
+ *   GET  /api/v1/usuarios/verificar         -> Confirmar vía enlace (retrocompatibilidad)
+ *   POST /api/v1/usuarios/login            -> Iniciar sesión
  */
 const express = require('express');
 const crypto  = require('crypto');
 const rateLimit = require('express-rate-limit');
 const Usuario = require('../models/UsuarioAuth');
-const { sendVerificationEmail } = require('../services/emailService');
+const { sendVerificationCode } = require('../services/emailService');
 
 const router = express.Router();
 
@@ -32,7 +34,7 @@ const limiterLogin = rateLimit({
   legacyHeaders: false,
 });
 
-// -- Utilidades de contraseña -------------------------------------------
+// -- Utilidades ----------------------------------------------------------
 
 function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
@@ -48,6 +50,10 @@ function verifyPassword(password, stored) {
 
 function generateToken() {
   return crypto.randomBytes(32).toString('hex');
+}
+
+function generate6DigitCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 // -- POST /api/v1/usuarios/registro ------------------------------------
@@ -77,6 +83,8 @@ router.post('/registro', limiterRegistro, async (req, res) => {
 
     const passwordHash = hashPassword(password);
     const verificationToken = generateToken();
+    const codigoVerificacion = generate6DigitCode();
+    const codigoExpira = new Date(Date.now() + 15 * 60 * 1000); // Expiración a los 15 minutos
 
     const nuevoUsuario = await Usuario.create({
       nombre: nombre.trim(),
@@ -84,14 +92,17 @@ router.post('/registro', limiterRegistro, async (req, res) => {
       passwordHash,
       isVerified: false,
       verificationToken,
+      codigoVerificacion,
+      codigoExpira,
     });
 
-    // Enviar correo de verificación de forma asíncrona
-    sendVerificationEmail(nuevoUsuario.correo, nuevoUsuario.nombre, verificationToken);
+    // Enviar correo de verificación con código de 6 dígitos de forma asíncrona
+    sendVerificationCode(nuevoUsuario.correo, nuevoUsuario.nombre, codigoVerificacion);
 
     return res.status(201).json({
-      message: 'Cuenta creada exitosamente. Te hemos enviado un correo de verificación.',
+      message: 'Cuenta creada exitosamente. Te hemos enviado un código de 6 dígitos a tu correo.',
       userId: nuevoUsuario._id,
+      correo: nuevoUsuario.correo,
     });
   } catch (err) {
     console.error('[registro]', err);
@@ -99,7 +110,84 @@ router.post('/registro', limiterRegistro, async (req, res) => {
   }
 });
 
-// -- GET /api/v1/usuarios/verificar ------------------------------------
+// -- POST /api/v1/usuarios/verificar-codigo ----------------------------
+
+router.post('/verificar-codigo', async (req, res) => {
+  const { correo, codigo } = req.body;
+
+  if (!correo || !codigo) {
+    return res.status(400).json({ error: 'El correo y el código son requeridos.' });
+  }
+
+  try {
+    const usuario = await Usuario.findOne({ correo: correo.trim().toLowerCase() });
+    if (!usuario) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    if (usuario.isVerified) {
+      return res.status(200).json({ message: 'Tu cuenta ya está verificada.' });
+    }
+
+    if (!usuario.codigoVerificacion || usuario.codigoVerificacion !== codigo.trim()) {
+      return res.status(400).json({ error: 'El código de verificación es incorrecto.' });
+    }
+
+    if (usuario.codigoExpira && new Date() > new Date(usuario.codigoExpira)) {
+      return res.status(400).json({ error: 'El código ha expirado. Solicita un nuevo código.' });
+    }
+
+    usuario.isVerified = true;
+    usuario.codigoVerificacion = null;
+    usuario.codigoExpira = null;
+    usuario.verificationToken = null;
+    await usuario.save();
+
+    return res.status(200).json({
+      message: '¡Cuenta verificada exitosamente! Ya puedes iniciar sesión.',
+    });
+  } catch (err) {
+    console.error('[verificar-codigo error]', err);
+    return res.status(500).json({ error: 'Error al verificar el código.' });
+  }
+});
+
+// -- POST /api/v1/usuarios/reenviar-codigo -----------------------------
+
+router.post('/reenviar-codigo', async (req, res) => {
+  const { correo } = req.body;
+
+  if (!correo) {
+    return res.status(400).json({ error: 'El correo electrónico es requerido.' });
+  }
+
+  try {
+    const usuario = await Usuario.findOne({ correo: correo.trim().toLowerCase() });
+    if (!usuario) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    if (usuario.isVerified) {
+      return res.status(400).json({ error: 'Esta cuenta ya está verificada.' });
+    }
+
+    const nuevoCodigo = generate6DigitCode();
+    usuario.codigoVerificacion = nuevoCodigo;
+    usuario.codigoExpira = new Date(Date.now() + 15 * 60 * 1000);
+    await usuario.save();
+
+    sendVerificationCode(usuario.correo, usuario.nombre, nuevoCodigo);
+
+    return res.status(200).json({
+      message: 'Nuevo código enviado a tu correo electrónico.',
+    });
+  } catch (err) {
+    console.error('[reenviar-codigo error]', err);
+    return res.status(500).json({ error: 'Error al reenviar el código.' });
+  }
+});
+
+// -- GET /api/v1/usuarios/verificar (Retrocompatibilidad Enlace) ------
 
 router.get('/verificar', async (req, res) => {
   const { token } = req.query;
@@ -116,6 +204,8 @@ router.get('/verificar', async (req, res) => {
 
     usuario.isVerified = true;
     usuario.verificationToken = null;
+    usuario.codigoVerificacion = null;
+    usuario.codigoExpira = null;
     await usuario.save();
 
     return res.send(`

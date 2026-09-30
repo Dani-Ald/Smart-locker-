@@ -21,6 +21,15 @@ export interface RegisterPayload {
   passwordConfirm: string;
 }
 
+export interface VerifyCodePayload {
+  correo: string;
+  codigo: string;
+}
+
+export interface ResendCodePayload {
+  correo: string;
+}
+
 // ─── Errores tipados ──────────────────────────────────────────────────────────
 
 export class AuthError extends Error {
@@ -105,5 +114,50 @@ export async function register(payload: RegisterPayload): Promise<void> {
   if (!respuesta.ok) {
     throw new AuthError(respuesta.status, mensajeDeError(respuesta.status, 'register'));
   }
-  // 201 Created — sin retorno de datos necesario
+}
+
+/**
+ * Verifica el código de 6 dígitos introducido por el usuario.
+ */
+export async function verificarCodigo(payload: VerifyCodePayload): Promise<void> {
+  let respuesta: Response;
+
+  try {
+    respuesta = await fetch(`${API_BASE_URL}/usuarios/verificar-codigo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error('No fue posible conectar con el servidor.');
+  }
+
+  if (!respuesta.ok) {
+    const errorData = await respuesta.json().catch(() => ({}));
+    const msj = errorData.error || 'Código incorrecto o expirado.';
+    throw new AuthError(respuesta.status, msj);
+  }
+}
+
+/**
+ * Reenvía un nuevo código de 6 dígitos al correo del usuario.
+ */
+export async function reenviarCodigo(payload: ResendCodePayload): Promise<void> {
+  let respuesta: Response;
+
+  try {
+    respuesta = await fetch(`${API_BASE_URL}/usuarios/reenviar-codigo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error('No fue posible conectar con el servidor.');
+  }
+
+  if (!respuesta.ok) {
+    const errorData = await respuesta.json().catch(() => ({}));
+    const msj = errorData.error || 'Error al reenviar el código.';
+    throw new AuthError(respuesta.status, msj);
+  }
 }
