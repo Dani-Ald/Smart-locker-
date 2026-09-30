@@ -1,10 +1,4 @@
-const { Resend } = require('resend');
 const nodemailer = require('nodemailer');
-
-let resendClient = null;
-if (process.env.RESEND_API_KEY) {
-  resendClient = new Resend(process.env.RESEND_API_KEY);
-}
 
 /**
  * Envía el correo transaccional con el código de 6 dígitos.
@@ -30,18 +24,30 @@ async function sendVerificationCode(destinatario, nombre, codigo) {
     </div>
   `;
 
-  // 1. Resend API (Si existe la variable RESEND_API_KEY)
+  // 1. Resend API vía HTTP directo (sin librerías pesadas externas)
   if (process.env.RESEND_API_KEY) {
     try {
-      const resend = resendClient || new Resend(process.env.RESEND_API_KEY);
-      const data = await resend.emails.send({
-        from: process.env.RESEND_FROM || 'Smart Ticket <onboarding@resend.dev>',
-        to: destinatario,
-        subject: `🎟️ Tu código de verificación es ${codigo}`,
-        html: htmlContent,
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM || 'Smart Ticket <onboarding@resend.dev>',
+          to: [destinatario],
+          subject: `🎟️ Tu código de verificación es ${codigo}`,
+          html: htmlContent,
+        }),
       });
-      console.log(`✉️ [Resend API] Correo enviado exitosamente a ${destinatario} (ID: ${data.id || JSON.stringify(data)})`);
-      return data;
+
+      const data = await res.json();
+      if (res.ok) {
+        console.log(`✉️ [Resend API] Correo enviado exitosamente a ${destinatario} (ID: ${data.id || JSON.stringify(data)})`);
+        return data;
+      } else {
+        console.error('❌ Error de respuesta de Resend API:', data);
+      }
     } catch (err) {
       console.error('❌ Error enviando correo con Resend API:', err.message);
     }
