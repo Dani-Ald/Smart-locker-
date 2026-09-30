@@ -52,3 +52,14 @@ Aunque el flujo principal actual es la compra transaccional de boletos, el siste
 *   **Membresía Premium (Opcional):** Un modelo donde los usuarios pagan una cuota mensual/anual para obtener beneficios exclusivos, como acceso a preventas, descuentos en boletos o filas preferenciales en los recintos.
 
 *Relación con lo actual:* Actualmente no está implementado, pero la arquitectura de base de datos (`Modelo de Usuario` en MongoDB) y el `SessionContext` en la app móvil están preparados para extenderse y almacenar el estado de suscripción o preferencias de seguimiento de cada usuario.
+
+---
+
+## 5. Unificación de Base de Datos `test` y Ajustes de API
+
+Para garantizar la consistencia en el catálogo de eventos y el registro de usuarios entre el entorno local y de producción:
+
+* **Persistencia Unificada en `test`:** Se configuró Mongoose en `API/src/db.js` con el parámetro explícito `{ dbName: 'test' }` para asegurar que las colecciones `users` y `events` se creen y consulten únicamente en la base de datos **`test`** de MongoDB Atlas.
+* **Variable de Entorno (`MONGODB_URI`):** Se actualizó la variable de entorno en el panel de producción (Railway) para apuntar a la base de datos `test`.
+* **Ajuste de Rate Limiting:** Se flexibilizó el middleware `express-rate-limit` en `API/src/routes/usuarios.js` aumentando el límite a 50 peticiones por cada 15 minutos en los endpoints `/registro` y `/login`, evitando bloqueos HTTP 429 durante el flujo de pruebas.
+
