@@ -36,6 +36,7 @@ export default function RegisterScreen() {
 
   // Paso 2: Código de verificación
   const [codigo, setCodigo] = useState('');
+  const [codigoDev, setCodigoDev] = useState<string | null>(null);
   const [timerReenvio, setTimerReenvio] = useState(60);
   const [puedeReenviar, setPuedeReenviar] = useState(false);
 
@@ -46,7 +47,7 @@ export default function RegisterScreen() {
 
   // Temporizador para el reenvío de código
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (paso === 'verificacion' && timerReenvio > 0) {
       interval = setInterval(() => {
         setTimerReenvio(prev => {
@@ -90,12 +91,18 @@ export default function RegisterScreen() {
 
     setCargando(true);
     try {
-      await register({
+      const res = await register({
         nombre: nombre.trim(),
         correo: correo.trim().toLowerCase(),
         password,
         passwordConfirm,
       });
+      if (res.codigoDev) {
+        setCodigoDev(res.codigoDev);
+      }
+      if (res.emailError) {
+        setInfoMensaje('Cuenta creada. Si el correo demora en llegar, puedes usar el código de prueba mostrado abajo.');
+      }
       // Pasar al paso de verificación
       setPaso('verificacion');
       setTimerReenvio(60);
@@ -151,8 +158,15 @@ export default function RegisterScreen() {
     setCargando(true);
 
     try {
-      await reenviarCodigo({ correo: correo.trim().toLowerCase() });
-      setInfoMensaje('Te hemos reenviado un nuevo código de 6 dígitos.');
+      const res = await reenviarCodigo({ correo: correo.trim().toLowerCase() });
+      if (res.codigoDev) {
+        setCodigoDev(res.codigoDev);
+      }
+      if (res.emailError) {
+        setInfoMensaje('Nuevo código generado. Puedes usar el código de prueba abajo.');
+      } else {
+        setInfoMensaje('Te hemos reenviado un nuevo código de 6 dígitos.');
+      }
       setTimerReenvio(60);
       setPuedeReenviar(false);
     } catch (err) {
@@ -245,6 +259,28 @@ export default function RegisterScreen() {
                   editable={!cargando}
                 />
               </View>
+
+              {/* Notificación de Spam */}
+              <Text style={[styles.spamHint, { color: textSecondary }]}>
+                📬 Si no lo ves en tu bandeja principal, revisa la carpeta de{' '}
+                <Text style={{ fontWeight: '700', color: textColor }}>Spam</Text> o{' '}
+                <Text style={{ fontWeight: '700', color: textColor }}>Correo no deseado</Text>.
+              </Text>
+
+              {/* Banner de código de pruebas / fallback */}
+              {codigoDev && (
+                <View style={styles.devBanner}>
+                  <Text style={styles.devBannerTitle}>💡 Código generado (Modo de pruebas):</Text>
+                  <View style={styles.devBannerRow}>
+                    <Text style={styles.devBannerCode}>{codigoDev}</Text>
+                    <TouchableOpacity
+                      style={styles.devBannerBtn}
+                      onPress={() => setCodigo(codigoDev)}>
+                      <Text style={styles.devBannerBtnText}>Usar código</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
 
               {/* Error */}
               {error && (
@@ -587,4 +623,46 @@ const styles = StyleSheet.create({
   exitoEmoji: { fontSize: 64 },
   exitoTitulo: { fontSize: 26, fontWeight: '700' },
   exitoSub: { fontSize: 15, textAlign: 'center' },
+  spamHint: {
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: Spacing.one,
+  },
+  devBanner: {
+    backgroundColor: '#eff6ff',
+    borderRadius: 12,
+    padding: Spacing.two,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    gap: Spacing.one,
+  },
+  devBannerTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1d4ed8',
+  },
+  devBannerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 2,
+  },
+  devBannerCode: {
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: 4,
+    color: '#1e40af',
+  },
+  devBannerBtn: {
+    backgroundColor: '#208AEF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  devBannerBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
 });

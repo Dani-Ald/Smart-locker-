@@ -12,9 +12,22 @@ const express = require('express');
 const crypto  = require('crypto');
 const rateLimit = require('express-rate-limit');
 const Usuario = require('../models/UsuarioAuth');
-const { sendVerificationCode } = require('../services/emailService');
+const { sendVerificationCode, testEmailConnection } = require('../services/emailService');
 
 const router = express.Router();
+
+// -- GET /api/v1/usuarios/diagnostico-email ------------------------------
+router.get('/diagnostico-email', async (req, res) => {
+  try {
+    const estado = await testEmailConnection();
+    return res.json({
+      timestamp: new Date().toISOString(),
+      estado,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 // -- Rate limiting -------------------------------------------------------
 
@@ -97,23 +110,26 @@ router.post('/registro', limiterRegistro, async (req, res) => {
     });
 
     // Enviar correo de verificación — se espera el resultado para detectar errores SMTP
+    let emailEnviado = false;
+    let emailErrorMsg = null;
     try {
       await sendVerificationCode(nuevoUsuario.correo, nuevoUsuario.nombre, codigoVerificacion);
+      emailEnviado = true;
     } catch (emailErr) {
       console.error('[registro] Error al enviar correo:', emailErr.message);
-      // Cuenta creada pero correo falló — avisar al cliente
-      return res.status(201).json({
-        message: 'Cuenta creada, pero no pudimos enviar el correo de verificación. Usa "Reenviar código" en un momento.',
-        userId: nuevoUsuario._id,
-        correo: nuevoUsuario.correo,
-        emailError: true,
-      });
+      emailErrorMsg = emailErr.message;
     }
 
     return res.status(201).json({
-      message: 'Cuenta creada exitosamente. Te hemos enviado un código de 6 dígitos a tu correo.',
+      message: emailEnviado
+        ? 'Cuenta creada exitosamente. Te hemos enviado un código de 6 dígitos a tu correo.'
+        : 'Cuenta creada, pero hubo un problema al enviar el correo a tu bandeja.',
       userId: nuevoUsuario._id,
       correo: nuevoUsuario.correo,
+      emailEnviado,
+      emailError: !emailEnviado,
+      emailErrorMessage: emailErrorMsg,
+      codigoDev: codigoVerificacion, // Permite verificación inmediata en desarrollo/testing
     });
   } catch (err) {
     console.error('[registro]', err);
@@ -187,15 +203,24 @@ router.post('/reenviar-codigo', async (req, res) => {
     usuario.codigoExpira = new Date(Date.now() + 15 * 60 * 1000);
     await usuario.save();
 
+    let emailEnviado = false;
+    let emailErrorMsg = null;
     try {
       await sendVerificationCode(usuario.correo, usuario.nombre, nuevoCodigo);
+      emailEnviado = true;
     } catch (emailErr) {
       console.error('[reenviar-codigo] Error al enviar correo:', emailErr.message);
-      return res.status(500).json({ error: 'No se pudo enviar el correo. Verifica tu dirección o intenta más tarde.' });
+      emailErrorMsg = emailErr.message;
     }
 
     return res.status(200).json({
-      message: 'Nuevo código enviado a tu correo electrónico.',
+      message: emailEnviado
+        ? 'Nuevo código enviado a tu correo electrónico.'
+        : 'Código generado, pero hubo un problema al enviar el correo.',
+      emailEnviado,
+      emailError: !emailEnviado,
+      emailErrorMessage: emailErrorMsg,
+      codigoDev: nuevoCodigo, // Permite verificación inmediata si el correo se retrasa
     });
   } catch (err) {
     console.error('[reenviar-codigo error]', err);

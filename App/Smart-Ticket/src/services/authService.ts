@@ -30,6 +30,24 @@ export interface ResendCodePayload {
   correo: string;
 }
 
+export interface RegisterResult {
+  message: string;
+  userId?: string;
+  correo: string;
+  emailEnviado?: boolean;
+  emailError?: boolean;
+  emailErrorMessage?: string;
+  codigoDev?: string;
+}
+
+export interface ResendCodeResult {
+  message: string;
+  emailEnviado?: boolean;
+  emailError?: boolean;
+  emailErrorMessage?: string;
+  codigoDev?: string;
+}
+
 // ─── Errores tipados ──────────────────────────────────────────────────────────
 
 export class AuthError extends Error {
@@ -95,10 +113,11 @@ export async function login(payload: LoginPayload): Promise<SessionData> {
 
 /**
  * Registra un nuevo usuario.
+ * @returns RegisterResult con el estado del correo y posibles códigos de prueba.
  * @throws AuthError con código y mensaje descriptivo.
  * @throws Error genérico si no hay conexión.
  */
-export async function register(payload: RegisterPayload): Promise<void> {
+export async function register(payload: RegisterPayload): Promise<RegisterResult> {
   let respuesta: Response;
 
   try {
@@ -114,6 +133,9 @@ export async function register(payload: RegisterPayload): Promise<void> {
   if (!respuesta.ok) {
     throw new AuthError(respuesta.status, mensajeDeError(respuesta.status, 'register'));
   }
+
+  const data = await respuesta.json();
+  return data;
 }
 
 /**
@@ -142,7 +164,7 @@ export async function verificarCodigo(payload: VerifyCodePayload): Promise<void>
 /**
  * Reenvía un nuevo código de 6 dígitos al correo del usuario.
  */
-export async function reenviarCodigo(payload: ResendCodePayload): Promise<void> {
+export async function reenviarCodigo(payload: ResendCodePayload): Promise<ResendCodeResult> {
   let respuesta: Response;
 
   try {
@@ -160,4 +182,7 @@ export async function reenviarCodigo(payload: ResendCodePayload): Promise<void> 
     const msj = errorData.error || 'Error al reenviar el código.';
     throw new AuthError(respuesta.status, msj);
   }
+
+  const data = await respuesta.json();
+  return data;
 }

@@ -1,12 +1,83 @@
 const nodemailer = require('nodemailer');
 
 /**
+ * Crea el transporter de Nodemailer con configuración optimizada para producción/nube.
+ */
+function createSmtpTransporter() {
+  const isGmail = process.env.SMTP_HOST && process.env.SMTP_HOST.includes('gmail');
+  const isBrevo = process.env.SMTP_HOST && process.env.SMTP_HOST.includes('brevo');
+
+  const config = {
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT) || (isGmail ? 465 : 587),
+    secure: process.env.SMTP_SECURE === 'true' || (isGmail && Number(process.env.SMTP_PORT) === 465),
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 7000,
+    socketTimeout: 15000,
+    tls: {
+      rejectUnauthorized: false,
+    },
+  };
+
+  return nodemailer.createTransport(config);
+}
+
+/**
+ * Prueba y diagnostica la conexión del proveedor de correo activo.
+ */
+async function testEmailConnection() {
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    try {
+      const transporter = createSmtpTransporter();
+      await transporter.verify();
+      return {
+        ok: true,
+        provider: process.env.SMTP_HOST.includes('brevo')
+          ? 'Brevo SMTP'
+          : process.env.SMTP_HOST.includes('gmail')
+          ? 'Gmail SMTP'
+          : 'SMTP Personalizado',
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT || 587,
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        provider: 'SMTP',
+        host: process.env.SMTP_HOST,
+        error: err.message,
+      };
+    }
+  }
+
+  if (process.env.RESEND_API_KEY) {
+    return {
+      ok: true,
+      provider: 'Resend API',
+      note: 'Requiere dominio verificado para destinatarios generales.',
+    };
+  }
+
+  return {
+    ok: false,
+    provider: 'Ninguno',
+    error: 'No hay variables SMTP ni Resend configuradas en este entorno.',
+  };
+}
+
+/**
  * Envía el correo transaccional con el código de 6 dígitos.
  *
  * Prioridad:
- *   1. Gmail SMTP (SMTP_HOST + SMTP_USER) — funciona sin dominio propio ✅
- *   2. Resend API (RESEND_API_KEY) — requiere dominio verificado en resend.com
- *   3. Ethereal (fallback de pruebas, sin entrega real)
+ *   1. SMTP (Gmail / Brevo / Custom)
+ *   2. Resend API (HTTP directo)
+ *
+ * Si falla el envío real, lanza error en lugar de engañar al sistema con Ethereal.
  */
 async function sendVerificationCode(destinatario, nombre, codigo) {
   const htmlContent = `
@@ -29,34 +100,30 @@ async function sendVerificationCode(destinatario, nombre, codigo) {
     </div>
   `;
 
-  // 1. Gmail SMTP — prioridad alta, no requiere dominio verificado
-  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+  let lastError = null;
+
+  // 1. SMTP (Gmail / Brevo) — prioridad alta
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     try {
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT) || 587,
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      });
+      const transporter = createSmtpTransporter();
+      const remitente = process.env.SMTP_FROM || `"Smart Ticket" <${process.env.SMTP_USER}>`;
 
       const info = await transporter.sendMail({
-        from: process.env.SMTP_FROM || `"Smart Ticket" <${process.env.SMTP_USER}>`,
+        from: remitente,
         to: destinatario,
         subject: `🎟️ Tu código de verificación es ${codigo}`,
         html: htmlContent,
       });
 
-      console.log(`✉️ [Gmail SMTP] Correo enviado a ${destinatario}. MessageId: ${info.messageId}`);
-      return info;
+      console.log(`✉️ [SMTP] Correo enviado exitosamente a ${destinatario}. MessageId: ${info.messageId}`);
+      return { delivered: true, provider: 'SMTP', messageId: info.messageId };
     } catch (err) {
-      console.error('❌ Error enviando correo con Gmail SMTP:', err.message);
+      console.error('❌ Error enviando correo con SMTP:', err.message);
+      lastError = err;
     }
   }
 
-  // 2. Resend API — requiere dominio verificado en resend.com/domains
+  // 2. Resend API — fallback si está configurada la llave
   if (process.env.RESEND_API_KEY) {
     try {
       const res = await fetch('https://api.resend.com/emails', {
@@ -75,41 +142,29 @@ async function sendVerificationCode(destinatario, nombre, codigo) {
 
       const data = await res.json();
       if (res.ok) {
-        console.log(`✉️ [Resend API] Correo enviado a ${destinatario} (ID: ${data.id})`);
-        return data;
+        console.log(`✉️ [Resend API] Correo enviado exitosamente a ${destinatario} (ID: ${data.id})`);
+        return { delivered: true, provider: 'Resend', id: data.id };
       } else {
         console.error('❌ Error de respuesta de Resend API:', data);
+        lastError = new Error(data.message || 'Error en Resend API');
       }
     } catch (err) {
       console.error('❌ Error enviando correo con Resend API:', err.message);
+      lastError = err;
     }
   }
 
-  // 3. Fallback Ethereal — solo desarrollo, no entrega correos reales
-  try {
-    const testAccount = await nodemailer.createTestAccount();
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: { user: testAccount.user, pass: testAccount.pass },
-    });
+  // Log visible del código en consola para desarrollo/debug
+  console.log(`🔑 [Smart Ticket] CÓDIGO DE VERIFICACIÓN PARA ${destinatario}: [ ${codigo} ]`);
 
-    const info = await transporter.sendMail({
-      from: '"Smart Ticket" <no-reply@smartticket.com>',
-      to: destinatario,
-      subject: `🎟️ Tu código de verificación es ${codigo}`,
-      html: htmlContent,
-    });
-
-    console.log(`✉️ [Ethereal] Correo de prueba. Código: ${codigo}`);
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) console.log(`🔗 Vista previa (Ethereal): ${previewUrl}`);
-    return info;
-  } catch (error) {
-    console.error('❌ Error en el servicio de correo:', error.message);
-    console.log(`🔑 CÓDIGO DE VERIFICACIÓN (Consola Fallback): ${codigo} para ${destinatario}`);
-  }
+  // Lanzar error real si ningún proveedor pudo entregar
+  const msg = lastError ? lastError.message : 'No hay proveedor SMTP ni Resend configurado';
+  const error = new Error(msg);
+  error.codigoVerificacion = codigo;
+  throw error;
 }
 
-module.exports = { sendVerificationCode };
+module.exports = {
+  sendVerificationCode,
+  testEmailConnection,
+};
