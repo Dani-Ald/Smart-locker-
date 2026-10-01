@@ -89,13 +89,21 @@ export default function LoginScreen() {
 
           {/* Card del formulario */}
           <View style={[styles.card, { backgroundColor: cardBg }]}>
-            <Text style={[styles.cardTitle, { color: textColor }]}>Iniciar sesión</Text>
+            <Text style={[styles.cardTitle, { color: textColor }]}>¡Bienvenido!</Text>
+            <Text style={[styles.cardSubtitle, { color: textSecondary }]}>
+              Inicia sesión con tu cuenta para continuar
+            </Text>
 
             {/* Campo correo */}
             <View style={styles.fieldGroup}>
               <Text style={[styles.label, { color: textSecondary }]}>Correo electrónico</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: bg, color: textColor, borderColor: error ? '#ef4444' : colors.backgroundSelected }]}
+                /*
+                 * USO DE PLACEHOLDER:
+                 * Muestra un texto temporal o guía ('placeholder') visible únicamente cuando
+                 * el campo está vacío, indicando al usuario el formato o dato esperado.
+                 */
                 placeholder="correo@ejemplo.com"
                 placeholderTextColor={textSecondary}
                 value={correo}
@@ -115,10 +123,20 @@ export default function LoginScreen() {
               <View style={[styles.inputRow, { backgroundColor: bg, borderColor: error ? '#ef4444' : colors.backgroundSelected }]}>
                 <TextInput
                   style={[styles.inputFlex, { color: textColor }]}
+                  /*
+                   * USO DE PLACEHOLDER:
+                   * Texto de ayuda que sugiere el requisito mínimo mientras el campo permanezca vacío.
+                   */
                   placeholder="Mínimo 8 caracteres"
                   placeholderTextColor={textSecondary}
                   value={password}
                   onChangeText={setPassword}
+                  /*
+                   * USO DE SECURETEXTENTRY:
+                   * 'secureTextEntry={true}' oculta/enmascara los caracteres ingresados reemplazándolos
+                   * por puntos o asteriscos para resguardar la contraseña y proteger datos confidenciales.
+                   * En este caso, vinculamos secureTextEntry={!mostrarPass} para permitir alternar entre visible y oculto.
+                   */
                   secureTextEntry={!mostrarPass}
                   returnKeyType="done"
                   onSubmitEditing={handleLogin}
@@ -219,6 +237,9 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 20,
     fontWeight: '700',
+  },
+  cardSubtitle: {
+    fontSize: 14,
     marginBottom: Spacing.one,
   },
   fieldGroup: { gap: Spacing.one },
