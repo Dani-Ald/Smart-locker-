@@ -1,19 +1,26 @@
 const nodemailer = require('nodemailer');
 
+function cleanVal(v) {
+  if (!v) return '';
+  return String(v).replace(/^["']|["']$/g, '').trim();
+}
+
 /**
  * Crea el transporter de Nodemailer con configuración optimizada para producción/nube.
  */
 function createSmtpTransporter() {
-  const isGmail = process.env.SMTP_HOST && process.env.SMTP_HOST.includes('gmail');
-  const isBrevo = process.env.SMTP_HOST && process.env.SMTP_HOST.includes('brevo');
+  const host = cleanVal(process.env.SMTP_HOST);
+  const isGmail = host.includes('gmail');
+  const port = Number(cleanVal(process.env.SMTP_PORT)) || (isGmail ? 465 : 587);
+  const secure = cleanVal(process.env.SMTP_SECURE) === 'true' || (isGmail && port === 465);
 
   const config = {
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || (isGmail ? 465 : 587),
-    secure: process.env.SMTP_SECURE === 'true' || (isGmail && Number(process.env.SMTP_PORT) === 465),
+    host,
+    port,
+    secure,
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: cleanVal(process.env.SMTP_USER),
+      pass: cleanVal(process.env.SMTP_PASS),
     },
     connectionTimeout: 10000,
     greetingTimeout: 7000,
@@ -111,15 +118,16 @@ async function sendVerificationCode(destinatario, nombre, codigo) {
   let lastError = null;
 
   // 1. Brevo REST API (HTTPS puerto 443 — NO se bloquea en ningún plan de Railway)
-  if (process.env.BREVO_API_KEY) {
+  const brevoApiKey = cleanVal(process.env.BREVO_API_KEY);
+  if (brevoApiKey) {
     try {
-      const remitenteEmail = process.env.BREVO_SENDER || 'smart.ticket.contacto@gmail.com';
-      const remitenteName = process.env.BREVO_SENDER_NAME || 'Smart Ticket';
+      const remitenteEmail = cleanVal(process.env.BREVO_SENDER) || 'smart.ticket.contacto@gmail.com';
+      const remitenteName = cleanVal(process.env.BREVO_SENDER_NAME) || 'Smart Ticket';
 
       const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
-          'api-key': process.env.BREVO_API_KEY,
+          'api-key': brevoApiKey,
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
