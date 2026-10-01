@@ -96,8 +96,19 @@ router.post('/registro', limiterRegistro, async (req, res) => {
       codigoExpira,
     });
 
-    // Enviar correo de verificación con código de 6 dígitos de forma asíncrona
-    sendVerificationCode(nuevoUsuario.correo, nuevoUsuario.nombre, codigoVerificacion);
+    // Enviar correo de verificación — se espera el resultado para detectar errores SMTP
+    try {
+      await sendVerificationCode(nuevoUsuario.correo, nuevoUsuario.nombre, codigoVerificacion);
+    } catch (emailErr) {
+      console.error('[registro] Error al enviar correo:', emailErr.message);
+      // Cuenta creada pero correo falló — avisar al cliente
+      return res.status(201).json({
+        message: 'Cuenta creada, pero no pudimos enviar el correo de verificación. Usa "Reenviar código" en un momento.',
+        userId: nuevoUsuario._id,
+        correo: nuevoUsuario.correo,
+        emailError: true,
+      });
+    }
 
     return res.status(201).json({
       message: 'Cuenta creada exitosamente. Te hemos enviado un código de 6 dígitos a tu correo.',
@@ -176,7 +187,12 @@ router.post('/reenviar-codigo', async (req, res) => {
     usuario.codigoExpira = new Date(Date.now() + 15 * 60 * 1000);
     await usuario.save();
 
-    sendVerificationCode(usuario.correo, usuario.nombre, nuevoCodigo);
+    try {
+      await sendVerificationCode(usuario.correo, usuario.nombre, nuevoCodigo);
+    } catch (emailErr) {
+      console.error('[reenviar-codigo] Error al enviar correo:', emailErr.message);
+      return res.status(500).json({ error: 'No se pudo enviar el correo. Verifica tu dirección o intenta más tarde.' });
+    }
 
     return res.status(200).json({
       message: 'Nuevo código enviado a tu correo electrónico.',
