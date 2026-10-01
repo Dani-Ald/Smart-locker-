@@ -30,6 +30,14 @@ function createSmtpTransporter() {
  * Prueba y diagnostica la conexión del proveedor de correo activo.
  */
 async function testEmailConnection() {
+  if (process.env.BREVO_API_KEY) {
+    return {
+      ok: true,
+      provider: 'Brevo REST API (HTTPS port 443)',
+      note: 'Conexión HTTPS libre de bloqueos de puertos.',
+    };
+  }
+
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     try {
       const transporter = createSmtpTransporter();
@@ -102,7 +110,42 @@ async function sendVerificationCode(destinatario, nombre, codigo) {
 
   let lastError = null;
 
-  // 1. SMTP (Gmail / Brevo) — prioridad alta
+  // 1. Brevo REST API (HTTPS puerto 443 — NO se bloquea en ningún plan de Railway)
+  if (process.env.BREVO_API_KEY) {
+    try {
+      const remitenteEmail = process.env.BREVO_SENDER || 'smart.ticket.contacto@gmail.com';
+      const remitenteName = process.env.BREVO_SENDER_NAME || 'Smart Ticket';
+
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': process.env.BREVO_API_KEY,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { name: remitenteName, email: remitenteEmail },
+          to: [{ email: destinatario, name: nombre }],
+          subject: `🎟️ Tu código de verificación es ${codigo}`,
+          htmlContent: htmlContent,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        console.log(`✉️ [Brevo REST API] Correo enviado a ${destinatario} (ID: ${data.messageId})`);
+        return { delivered: true, provider: 'Brevo API', messageId: data.messageId };
+      } else {
+        console.error('❌ Error de respuesta de Brevo API:', data);
+        lastError = new Error(data.message || JSON.stringify(data));
+      }
+    } catch (err) {
+      console.error('❌ Error enviando correo con Brevo API:', err.message);
+      lastError = err;
+    }
+  }
+
+  // 2. SMTP tradicional (Gmail / Brevo)
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     try {
       const transporter = createSmtpTransporter();
@@ -123,7 +166,7 @@ async function sendVerificationCode(destinatario, nombre, codigo) {
     }
   }
 
-  // 2. Resend API — fallback si está configurada la llave
+  // 3. Resend API — fallback si está configurada la llave
   if (process.env.RESEND_API_KEY) {
     try {
       const res = await fetch('https://api.resend.com/emails', {
