@@ -2,6 +2,11 @@ const nodemailer = require('nodemailer');
 
 /**
  * Envía el correo transaccional con el código de 6 dígitos.
+ *
+ * Prioridad:
+ *   1. Gmail SMTP (SMTP_HOST + SMTP_USER) — funciona sin dominio propio ✅
+ *   2. Resend API (RESEND_API_KEY) — requiere dominio verificado en resend.com
+ *   3. Ethereal (fallback de pruebas, sin entrega real)
  */
 async function sendVerificationCode(destinatario, nombre, codigo) {
   const htmlContent = `
@@ -24,7 +29,34 @@ async function sendVerificationCode(destinatario, nombre, codigo) {
     </div>
   `;
 
-  // 1. Resend API vía HTTP directo (sin librerías pesadas externas)
+  // 1. Gmail SMTP — prioridad alta, no requiere dominio verificado
+  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
+
+      const info = await transporter.sendMail({
+        from: process.env.SMTP_FROM || `"Smart Ticket" <${process.env.SMTP_USER}>`,
+        to: destinatario,
+        subject: `🎟️ Tu código de verificación es ${codigo}`,
+        html: htmlContent,
+      });
+
+      console.log(`✉️ [Gmail SMTP] Correo enviado a ${destinatario}. MessageId: ${info.messageId}`);
+      return info;
+    } catch (err) {
+      console.error('❌ Error enviando correo con Gmail SMTP:', err.message);
+    }
+  }
+
+  // 2. Resend API — requiere dominio verificado en resend.com/domains
   if (process.env.RESEND_API_KEY) {
     try {
       const res = await fetch('https://api.resend.com/emails', {
@@ -43,7 +75,7 @@ async function sendVerificationCode(destinatario, nombre, codigo) {
 
       const data = await res.json();
       if (res.ok) {
-        console.log(`✉️ [Resend API] Correo enviado exitosamente a ${destinatario} (ID: ${data.id || JSON.stringify(data)})`);
+        console.log(`✉️ [Resend API] Correo enviado a ${destinatario} (ID: ${data.id})`);
         return data;
       } else {
         console.error('❌ Error de respuesta de Resend API:', data);
@@ -53,44 +85,26 @@ async function sendVerificationCode(destinatario, nombre, codigo) {
     }
   }
 
-  // 2. Fallback SMTP (Nodemailer)
+  // 3. Fallback Ethereal — solo desarrollo, no entrega correos reales
   try {
-    let transporter;
-    if (process.env.SMTP_HOST && process.env.SMTP_USER) {
-      transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT) || 587,
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      });
-    } else {
-      const testAccount = await nodemailer.createTestAccount();
-      transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
-        secure: false,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass,
-        },
-      });
-    }
+    const testAccount = await nodemailer.createTestAccount();
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.ethereal.email',
+      port: 587,
+      secure: false,
+      auth: { user: testAccount.user, pass: testAccount.pass },
+    });
 
     const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || '"Smart Ticket" <no-reply@smartticket.com>',
+      from: '"Smart Ticket" <no-reply@smartticket.com>',
       to: destinatario,
       subject: `🎟️ Tu código de verificación es ${codigo}`,
       html: htmlContent,
     });
 
-    console.log(`✉️ [Nodemailer] Correo enviado a ${destinatario}. Código: ${codigo}`);
+    console.log(`✉️ [Ethereal] Correo de prueba. Código: ${codigo}`);
     const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log(`🔗 Vista previa (Ethereal): ${previewUrl}`);
-    }
+    if (previewUrl) console.log(`🔗 Vista previa (Ethereal): ${previewUrl}`);
     return info;
   } catch (error) {
     console.error('❌ Error en el servicio de correo:', error.message);
@@ -98,6 +112,4 @@ async function sendVerificationCode(destinatario, nombre, codigo) {
   }
 }
 
-module.exports = {
-  sendVerificationCode,
-};
+module.exports = { sendVerificationCode };
