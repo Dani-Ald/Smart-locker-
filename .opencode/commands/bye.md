@@ -1,5 +1,5 @@
 ---
-description: Cierra la sesión: guarda el contexto en DOCS, actualiza MEMORY.md y propone reglas para AGENTS.md
+description: Cierra la sesión - guarda el contexto en DOCS, actualiza MEMORY.md y propone reglas para AGENTS.md
 agent: build
 ---
 Vamos a cerrar la sesión. Nota adicional del usuario (opcional): $ARGUMENTS
