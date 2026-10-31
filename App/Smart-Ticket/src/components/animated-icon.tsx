@@ -6,7 +6,8 @@ import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
-const DURATION = 600;
+const DURATION = 800;
+const APP_ICON = require('@/assets/images/BOT.png');
 
 export function AnimatedSplashOverlay() {
   const [animate, setAnimate] = useState(false);
@@ -16,24 +17,39 @@ export function AnimatedSplashOverlay() {
 
   const splashKeyframe = new Keyframe({
     0: {
-      transform: [{ scale: 1 }],
       opacity: 1,
     },
-    20: {
+    65: {
       opacity: 1,
-    },
-    70: {
-      opacity: 0,
-      easing: Easing.elastic(0.7),
     },
     100: {
       opacity: 0,
-      transform: [{ scale: 1 }],
-      easing: Easing.elastic(0.7),
+      easing: Easing.out(Easing.quad),
     },
   });
 
-  const image = <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />;
+  const iconKeyframe = new Keyframe({
+    0: {
+      opacity: 0.7,
+      transform: [{ scale: 0.82 }],
+    },
+    45: {
+      opacity: 1,
+      transform: [{ scale: 1.06 }],
+      easing: Easing.out(Easing.cubic),
+    },
+    72: {
+      opacity: 1,
+      transform: [{ scale: 1 }],
+      easing: Easing.inOut(Easing.quad),
+    },
+    100: {
+      opacity: 0,
+      transform: [{ scale: 1.03 }],
+    },
+  });
+
+  const staticImage = <Image contentFit="contain" style={styles.splashImage} source={APP_ICON} />;
 
   return animate ? (
     <Animated.View
@@ -44,7 +60,9 @@ export function AnimatedSplashOverlay() {
         }
       })}
       style={styles.splashOverlay}>
-      {image}
+      <Animated.View entering={iconKeyframe.duration(DURATION)} style={styles.splashIconContainer}>
+        <Image contentFit="contain" style={styles.splashImage} source={APP_ICON} />
+      </Animated.View>
     </Animated.View>
   ) : (
     <View
@@ -54,7 +72,7 @@ export function AnimatedSplashOverlay() {
         });
       }}
       style={styles.splashOverlay}>
-      {image}
+      {staticImage}
     </View>
   );
 }
@@ -104,7 +122,7 @@ export function AnimatedIcon() {
 
       <Animated.View entering={keyframe.duration(DURATION)} style={styles.background} />
       <Animated.View style={styles.imageContainer} entering={logoKeyframe.duration(DURATION)}>
-        <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />
+        <Image contentFit="contain" style={styles.image} source={APP_ICON} />
       </Animated.View>
     </View>
   );
@@ -128,8 +146,9 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   image: {
-    width: 76,
-    height: 71,
+    width: 92,
+    height: 92,
+    borderRadius: 24,
   },
   background: {
     borderRadius: 40,
@@ -140,9 +159,18 @@ const styles = StyleSheet.create({
   },
   splashOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#208AEF',
+    backgroundColor: '#F4F7FB',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
+  },
+  splashIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  splashImage: {
+    width: 170,
+    height: 170,
+    borderRadius: 42,
   },
 });

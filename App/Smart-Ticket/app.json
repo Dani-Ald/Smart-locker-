@@ -4,11 +4,11 @@
     "slug": "Smart-Ticket",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/BOT.png",
     "scheme": "smartticket",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/images/icon.png"
+      "icon": "./assets/images/BOT.png"
     },
     "android": {
       "permissions": [
@@ -16,7 +16,7 @@
       ],
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/images/adaptive-icon.png"
+        "foregroundImage": "./assets/images/BOT.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.daniald.SmartTicket",
@@ -34,9 +34,10 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#F4F7FB",
+          "image": "./assets/images/BOT.png",
+          "imageWidth": 170,
+          "resizeMode": "contain"
         }
       ],
       "expo-secure-store",
