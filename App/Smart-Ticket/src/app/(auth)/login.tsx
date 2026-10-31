@@ -23,7 +23,6 @@ export default function LoginScreen() {
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
   const [mostrarPass, setMostrarPass] = useState(false);
-  const [recordarme, setRecordarme] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,13 +53,9 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Fondo nocturno con gradiente profundo y orbes de escenario */}
-      <LinearGradient
-        colors={['#0A0F24', '#0F172A', '#070A17']}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.orbCyan} />
-      <View style={styles.orbCobalt} />
+      {/* Fondo limpio azul hielo ultra pálido con orbes flotantes suaves */}
+      <View style={styles.orbTopLeft} />
+      <View style={styles.orbBottomRight} />
 
       <SafeAreaView style={styles.safe}>
         <KeyboardAvoidingView
@@ -71,29 +66,25 @@ export default function LoginScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
 
-            {/* Encabezado Temático */}
+            {/* Isotipo y Encabezado */}
             <View style={styles.header}>
-              <View style={styles.logoContainerOuter}>
+              <View style={styles.logoContainer}>
                 <LinearGradient
-                  colors={['rgba(56, 189, 248, 0.3)', 'rgba(37, 99, 235, 0.1)']}
-                  style={styles.logoGlowRing}
-                />
-                <LinearGradient
-                  colors={['#00D4FF', '#2563EB']}
-                  style={styles.logoChip}>
+                  colors={['#1E60FF', '#0052FF']}
+                  style={styles.logoGradient}>
                   <Text style={styles.logoText}>🎫</Text>
                 </LinearGradient>
               </View>
               <Text style={styles.appName}>Smart Ticket</Text>
-              <Text style={styles.tagline}>Tu pase a los mejores eventos</Text>
+              <Text style={styles.tagline}>Tu acceso a los mejores eventos</Text>
             </View>
 
-            {/* Tarjeta Central Glassmorphism & Neomórfica */}
+            {/* Tarjeta Central Clean Soft Neumorphism + Glassmorphism */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>Welcome Back</Text>
                 <Text style={styles.cardSubtitle}>
-                  Inicia sesión para vivir la experiencia nocturna
+                  Inicia sesión para continuar tu experiencia
                 </Text>
               </View>
 
@@ -104,8 +95,8 @@ export default function LoginScreen() {
                   <Text style={styles.inputIcon}>✉️</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="usuario@festival.com"
-                    placeholderTextColor="#64748B"
+                    placeholder="correo@ejemplo.com"
+                    placeholderTextColor="#8A99AD"
                     value={correo}
                     onChangeText={setCorreo}
                     keyboardType="email-address"
@@ -125,8 +116,8 @@ export default function LoginScreen() {
                   <Text style={styles.inputIcon}>🔒</Text>
                   <TextInput
                     style={styles.inputFlex}
-                    placeholder="••••••••••••"
-                    placeholderTextColor="#64748B"
+                    placeholder="Mínimo 8 caracteres"
+                    placeholderTextColor="#8A99AD"
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!mostrarPass}
@@ -144,18 +135,8 @@ export default function LoginScreen() {
                 </View>
               </View>
 
-              {/* Opciones extras: Recordarme y Olvidé contraseña */}
-              <View style={styles.extrasRow}>
-                <TouchableOpacity
-                  style={styles.checkboxContainer}
-                  onPress={() => setRecordarme(!recordarme)}
-                  activeOpacity={0.8}>
-                  <View style={[styles.checkbox, recordarme && styles.checkboxActive]}>
-                    {recordarme && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-                  <Text style={styles.checkboxLabel}>Recordarme</Text>
-                </TouchableOpacity>
-
+              {/* Olvidé contraseña */}
+              <View style={styles.forgotRow}>
                 <TouchableOpacity onPress={() => {}}>
                   <Text style={styles.forgotLink}>¿Olvidaste tu contraseña?</Text>
                 </TouchableOpacity>
@@ -164,20 +145,20 @@ export default function LoginScreen() {
               {/* Mensaje de Error */}
               {error && (
                 <View style={styles.errorBanner}>
-                  <Text style={styles.errorText}>⚡ {error}</Text>
+                  <Text style={styles.errorText}>⚠️ {error}</Text>
                 </View>
               )}
 
-              {/* Botón de Inicio de Sesión */}
+              {/* Botón de Inicio de Sesión (CTA Principal) */}
               <TouchableOpacity
                 onPress={handleLogin}
                 disabled={cargando}
                 activeOpacity={0.9}
                 style={styles.btnWrapper}>
                 <LinearGradient
-                  colors={['#00D4FF', '#2563EB', '#1D4ED8']}
+                  colors={['#1E60FF', '#0052FF']}
                   start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+                  end={{ x: 1, y: 0 }}
                   style={styles.btnGradient}>
                   {cargando ? (
                     <ActivityIndicator color="#fff" />
@@ -192,14 +173,14 @@ export default function LoginScreen() {
                 </LinearGradient>
               </TouchableOpacity>
 
-              {/* Separador Social Login */}
+              {/* Separador */}
               <View style={styles.dividerRow}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>o conéctate con</Text>
+                <Text style={styles.dividerText}>O CONTINUAR CON</Text>
                 <View style={styles.dividerLine} />
               </View>
 
-              {/* Fila de Social Login */}
+              {/* Social Login */}
               <View style={styles.socialRow}>
                 <TouchableOpacity style={styles.socialBtn} activeOpacity={0.85}>
                   <Text style={styles.socialIcon}>🌐</Text>
@@ -214,9 +195,9 @@ export default function LoginScreen() {
 
             {/* Enlace a Registro */}
             <View style={styles.footer}>
-              <Text style={styles.footerText}>¿Aún no tienes tu pase? </Text>
+              <Text style={styles.footerText}>¿No tienes una cuenta? </Text>
               <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-                <Text style={styles.footerLink}>Regístrate aquí</Text>
+                <Text style={styles.footerLink}>Regístrate</Text>
               </TouchableOpacity>
             </View>
 
@@ -230,27 +211,25 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0F24',
+    backgroundColor: '#EEF4FA',
   },
-  orbCyan: {
+  orbTopLeft: {
     position: 'absolute',
-    top: -80,
-    left: -50,
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    backgroundColor: '#00D4FF',
-    opacity: 0.18,
+    top: -60,
+    left: -40,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(56, 189, 248, 0.25)',
   },
-  orbCobalt: {
+  orbBottomRight: {
     position: 'absolute',
-    bottom: -100,
-    right: -60,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: '#2563EB',
-    opacity: 0.22,
+    bottom: -80,
+    right: -40,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(30, 96, 255, 0.15)',
   },
   safe: { flex: 1 },
   kav: { flex: 1 },
@@ -259,75 +238,72 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
     paddingBottom: 40,
-    gap: 24,
+    gap: 20,
   },
   header: {
     alignItems: 'center',
-    gap: 8,
-    marginTop: 10,
+    gap: 6,
   },
-  logoContainerOuter: {
-    width: 76,
-    height: 76,
+  logoContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#0052FF',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 6,
     marginBottom: 4,
   },
-  logoGlowRing: {
-    ...StyleSheet.absoluteFill,
-    borderRadius: 22,
-  },
-  logoChip: {
-    width: 62,
-    height: 62,
+  logoGradient: {
+    width: 56,
+    height: 56,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#00D4FF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
-    elevation: 8,
   },
   logoText: {
-    fontSize: 28,
+    fontSize: 26,
   },
   appName: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
-    color: '#F8FAFC',
-    letterSpacing: 0.5,
+    color: '#0D172A',
+    letterSpacing: 0.3,
   },
   tagline: {
-    fontSize: 14,
-    color: '#94A3B8',
-    letterSpacing: 0.4,
+    fontSize: 13,
+    color: '#8A99AD',
+    letterSpacing: 0.2,
   },
   card: {
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 28,
     padding: 24,
-    borderWidth: 1.5,
-    borderColor: 'rgba(56, 189, 248, 0.2)',
-    gap: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
-    elevation: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.8)',
+    gap: 16,
+    shadowColor: '#1E293B',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 8,
   },
   cardHeader: {
-    gap: 4,
-    marginBottom: 4,
+    gap: 2,
+    marginBottom: 2,
   },
   cardTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0D172A',
   },
   cardSubtitle: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: '#8A99AD',
   },
   fieldGroup: {
     gap: 6,
@@ -335,37 +311,37 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#38BDF8',
-    letterSpacing: 1.2,
+    color: '#1E60FF',
+    letterSpacing: 1.1,
   },
   inputRow: {
     height: 52,
-    backgroundColor: 'rgba(10, 15, 36, 0.85)',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
   },
   inputIcon: {
-    fontSize: 16,
+    fontSize: 15,
     marginRight: 12,
   },
   input: {
     flex: 1,
     fontSize: 15,
-    color: '#F8FAFC',
+    color: '#0D172A',
   },
   inputFlex: {
     flex: 1,
     fontSize: 15,
-    color: '#F8FAFC',
+    color: '#0D172A',
   },
   inputError: {
     borderColor: '#EF4444',
@@ -374,70 +350,41 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   eyeIcon: {
-    fontSize: 16,
+    fontSize: 15,
   },
-  extrasRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: '#38BDF8',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(10, 15, 36, 0.9)',
-  },
-  checkboxActive: {
-    backgroundColor: '#00D4FF',
-  },
-  checkmark: {
-    color: '#0A0F24',
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  checkboxLabel: {
-    fontSize: 13,
-    color: '#94A3B8',
+  forgotRow: {
+    alignItems: 'flex-end',
+    marginTop: -2,
   },
   forgotLink: {
     fontSize: 13,
-    color: '#38BDF8',
+    color: '#1E60FF',
     fontWeight: '600',
   },
   errorBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderRadius: 12,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.4)',
+    borderColor: '#FEE2E2',
   },
   errorText: {
-    color: '#FCA5A5',
+    color: '#DC2626',
     fontSize: 13,
     fontWeight: '600',
   },
   btnWrapper: {
-    marginTop: 6,
-    borderRadius: 18,
-    shadowColor: '#2563EB',
+    marginTop: 4,
+    borderRadius: 22,
+    shadowColor: '#1E60FF',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.35,
     shadowRadius: 16,
-    elevation: 8,
+    elevation: 6,
   },
   btnGradient: {
     height: 54,
-    borderRadius: 18,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
@@ -452,14 +399,14 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
-    letterSpacing: 0.5,
-    marginLeft: 24,
+    letterSpacing: 0.4,
+    marginLeft: 20,
   },
   arrowBubble: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -471,18 +418,19 @@ const styles = StyleSheet.create({
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     marginVertical: 4,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+    backgroundColor: '#E2E8F0',
   },
   dividerText: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
+    fontSize: 11,
+    color: '#8A99AD',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   socialRow: {
     flexDirection: 'row',
@@ -490,15 +438,20 @@ const styles = StyleSheet.create({
   },
   socialBtn: {
     flex: 1,
-    height: 46,
-    borderRadius: 14,
-    backgroundColor: 'rgba(10, 15, 36, 0.8)',
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.2)',
+    borderColor: '#E2E8F0',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   socialIcon: {
     fontSize: 16,
@@ -506,7 +459,7 @@ const styles = StyleSheet.create({
   socialText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#E2E8F0',
+    color: '#0D172A',
   },
   footer: {
     flexDirection: 'row',
@@ -515,11 +468,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#8A99AD',
   },
   footerLink: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#38BDF8',
+    color: '#1E60FF',
   },
 });
