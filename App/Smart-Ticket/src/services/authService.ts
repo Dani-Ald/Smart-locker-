@@ -48,11 +48,6 @@ export interface ResendCodeResult {
   codigoDev?: string;
 }
 
-export interface RequestAccessCodeResult {
-  message: string;
-  codigoDev?: string;
-}
-
 // ─── Errores tipados ──────────────────────────────────────────────────────────
 
 export class AuthError extends Error {
@@ -103,7 +98,11 @@ export async function login(payload: LoginPayload): Promise<SessionData> {
   }
 
   if (!respuesta.ok) {
-    throw new AuthError(respuesta.status, mensajeDeError(respuesta.status, 'login'));
+    const errorData = await respuesta.json().catch(() => ({}));
+    throw new AuthError(
+      respuesta.status,
+      errorData.error || mensajeDeError(respuesta.status, 'login'),
+    );
   }
 
   const data = await respuesta.json();
@@ -189,28 +188,6 @@ export async function reenviarCodigo(payload: ResendCodePayload): Promise<Resend
   }
 
   const data = await respuesta.json();
-  return data;
-}
-
-export async function solicitarCodigoAcceso(correo: string): Promise<RequestAccessCodeResult> {
-  const respuesta = await fetch(`${API_BASE_URL}/usuarios/solicitar-codigo-acceso`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ correo }),
-  }).catch(() => { throw new Error('No fue posible conectar con el servidor.'); });
-  const data = await respuesta.json().catch(() => ({}));
-  if (!respuesta.ok) throw new AuthError(respuesta.status, data.error || 'No fue posible enviar el código.');
-  return data;
-}
-
-export async function verificarCodigoAcceso(correo: string, codigo: string): Promise<SessionData> {
-  const respuesta = await fetch(`${API_BASE_URL}/usuarios/verificar-codigo-acceso`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ correo, codigo }),
-  }).catch(() => { throw new Error('No fue posible conectar con el servidor.'); });
-  const data = await respuesta.json().catch(() => ({}));
-  if (!respuesta.ok) throw new AuthError(respuesta.status, data.error || 'Código incorrecto o expirado.');
   return data;
 }
 

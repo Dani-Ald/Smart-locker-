@@ -19,7 +19,7 @@ cd API
 npm run keys:qr
 ```
 
-Copia los valores directamente al proveedor de despliegue. Configura además `OTP_PEPPER` con un valor aleatorio independiente. Nunca guardes estos valores en documentación o Git.
+Copia los valores directamente al proveedor de despliegue. Nunca guardes estos valores en documentación o Git.
 
 ## Prueba en modo avión
 
@@ -37,7 +37,7 @@ Copia los valores directamente al proveedor de despliegue. Configura además `OT
 ## Pruebas de seguridad
 
 - [ ] Un token ausente, revocado o expirado recibe 401.
-- [ ] Un OTP expira y se bloquea después del límite de intentos.
+- [ ] Un código de verificación expirado no permite validar una cuenta.
 - [ ] Producción nunca devuelve `codigoDev`.
 - [ ] Una reseña sin boleto usado recibe 403.
 - [ ] Alterar cualquier byte del payload o firma invalida el QR en el validador.

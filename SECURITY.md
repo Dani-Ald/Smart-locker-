@@ -11,4 +11,4 @@ Incluye versión, plataforma, pasos mínimos de reproducción e impacto. Elimina
 - Los secretos del backend viven únicamente en `API/.env` o en el proveedor de despliegue.
 - La clave privada Ed25519 nunca debe distribuirse con la app.
 - Ante una filtración, rota inmediatamente la clave afectada y cambia `QR_KEY_ID`.
-- No publiques códigos OTP ni tokens de sesión en producción.
+- No publiques códigos de verificación ni tokens de sesión en producción.

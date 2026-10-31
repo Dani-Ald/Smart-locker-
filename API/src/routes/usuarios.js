@@ -49,14 +49,6 @@ const limiterLogin = rateLimit({
   legacyHeaders: false,
 });
 
-const limiterCodigoAcceso = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  message: { error: 'Demasiados intentos. Inténtalo en unos minutos.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
 // -- Utilidades ----------------------------------------------------------
 
 function hashPassword(password) {
@@ -77,18 +69,6 @@ function generateToken() {
 
 function generate6DigitCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-function hashAccessCode(codigo) {
-  const pepper = process.env.OTP_PEPPER;
-  if (!pepper) throw new Error('OTP_PEPPER no está configurada.');
-  return crypto.createHmac('sha256', pepper).update(codigo).digest('hex');
-}
-
-function accessCodeMatches(codigo, storedHash) {
-  const actual = Buffer.from(hashAccessCode(codigo), 'hex');
-  const expected = Buffer.from(storedHash, 'hex');
-  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
 }
 
 // -- POST /api/v1/usuarios/registro ------------------------------------
@@ -285,75 +265,6 @@ router.get('/verificar', async (req, res) => {
   }
 });
 
-// -- POST /api/v1/usuarios/login ---------------------------------------
-
-router.post('/solicitar-codigo-acceso', limiterCodigoAcceso, async (req, res) => {
-  const correo = typeof req.body.correo === 'string' ? req.body.correo.trim().toLowerCase() : '';
-  if (!correo) return res.status(400).json({ error: 'El correo electrónico es requerido.' });
-
-  const respuesta = { message: 'Si la cuenta existe, recibirás un código de acceso.' };
-  try {
-    const usuario = await Usuario.findOne({ correo, isVerified: true });
-    if (!usuario) return res.json(respuesta);
-
-    const codigo = generate6DigitCode();
-    usuario.codigoAccesoHash = hashAccessCode(codigo);
-    usuario.codigoAccesoExpira = new Date(Date.now() + 10 * 60 * 1000);
-    usuario.intentosCodigoAcceso = 0;
-    await usuario.save();
-    await sendVerificationCode(usuario.correo, usuario.nombre, codigo, 'acceso');
-
-    return res.json({
-      ...respuesta,
-      ...(process.env.NODE_ENV !== 'production' ? { codigoDev: codigo } : {}),
-    });
-  } catch (err) {
-    console.error('[solicitar-codigo-acceso]', err);
-    return res.json(respuesta);
-  }
-});
-
-router.post('/verificar-codigo-acceso', limiterCodigoAcceso, async (req, res) => {
-  const correo = typeof req.body.correo === 'string' ? req.body.correo.trim().toLowerCase() : '';
-  const codigo = typeof req.body.codigo === 'string' ? req.body.codigo.trim() : '';
-  if (!correo || !/^\d{6}$/.test(codigo)) {
-    return res.status(400).json({ error: 'Correo y código de 6 dígitos requeridos.' });
-  }
-
-  try {
-    const usuario = await Usuario.findOne({ correo, isVerified: true });
-    if (!usuario?.codigoAccesoHash || !usuario.codigoAccesoExpira) {
-      return res.status(401).json({ error: 'Código incorrecto o expirado.' });
-    }
-    if (usuario.intentosCodigoAcceso >= 5 || usuario.codigoAccesoExpira < new Date()) {
-      usuario.codigoAccesoHash = null;
-      usuario.codigoAccesoExpira = null;
-      await usuario.save();
-      return res.status(401).json({ error: 'Código incorrecto o expirado.' });
-    }
-    if (!accessCodeMatches(codigo, usuario.codigoAccesoHash)) {
-      usuario.intentosCodigoAcceso += 1;
-      await usuario.save();
-      return res.status(401).json({ error: 'Código incorrecto o expirado.' });
-    }
-
-    usuario.codigoAccesoHash = null;
-    usuario.codigoAccesoExpira = null;
-    usuario.intentosCodigoAcceso = 0;
-    await usuario.save();
-    const token = await createSession(usuario._id);
-    return res.json({
-      token,
-      nombre: usuario.nombre,
-      correo: usuario.correo,
-      id: usuario._id.toString(),
-    });
-  } catch (err) {
-    console.error('[verificar-codigo-acceso]', err);
-    return res.status(500).json({ error: 'No fue posible verificar el código.' });
-  }
-});
-
 router.post('/logout', requireAuth, async (req, res) => {
   try {
     await revokeSession(req.sessionToken);
@@ -363,6 +274,8 @@ router.post('/logout', requireAuth, async (req, res) => {
     return res.status(500).json({ error: 'No fue posible cerrar la sesión.' });
   }
 });
+
+// -- POST /api/v1/usuarios/login ---------------------------------------
 
 router.post('/login', limiterLogin, async (req, res) => {
   const { correo, password } = req.body;

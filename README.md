@@ -12,7 +12,7 @@ La app móvil no procesa compras ni publica eventos. Esas acciones abren la plat
 
 ## Funcionalidades principales
 
-- Acceso por OTP enviado al correo y sesiones revocables.
+- Inicio de sesión con correo y contraseña, verificación de cuenta por código y sesiones revocables.
 - Sesión local protegida con SecureStore y bloqueo biométrico opcional.
 - Sincronización de boletos hacia SQLite para lectura offline.
 - QR generado localmente desde un payload firmado con Ed25519.

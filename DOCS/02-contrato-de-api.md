@@ -84,20 +84,24 @@ Respuesta incluye el `boleto` creado y, si `metodoPago` es `linea`, los datos ne
 |---|---|---|
 | POST | `/api/v1/usuarios` | Registro simple (nombre, email, teléfono) |
 | GET | `/api/v1/usuarios/:id/boletos` | Boletos comprados por ese usuario |
-| POST | `/api/v1/usuarios/solicitar-codigo-acceso` | Envía un OTP de acceso de 6 dígitos; la respuesta no revela si existe el correo |
-| POST | `/api/v1/usuarios/verificar-codigo-acceso` | Valida OTP y crea una sesión segura |
+| POST | `/api/v1/usuarios/registro` | Crea una cuenta y envía el código de verificación |
+| POST | `/api/v1/usuarios/verificar-codigo` | Verifica la cuenta nueva con el código de 6 dígitos |
+| POST | `/api/v1/usuarios/reenviar-codigo` | Reenvía el código de verificación de la cuenta |
+| POST | `/api/v1/usuarios/login` | Inicia sesión con correo y contraseña en una cuenta verificada |
 | POST | `/api/v1/usuarios/logout` | Revoca la sesión actual |
 
-**Verificación de acceso:**
+**Inicio de sesión:**
 ```json
 {
   "correo": "persona@ejemplo.com",
-  "codigo": "123456"
+  "password": "contraseña-del-usuario"
 }
 ```
 
 Respuesta: `{ "token", "nombre", "correo", "id" }`. El token es opaco, se
 guarda únicamente como hash en servidor, expira y debe enviarse como Bearer.
+El código de 6 dígitos se utiliza únicamente para validar una cuenta nueva; no
+reemplaza la contraseña ni inicia una sesión.
 
 ---
 

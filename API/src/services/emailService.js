@@ -103,9 +103,7 @@ async function testEmailConnection() {
  *
  * Si falla el envío real, lanza error en lugar de engañar al sistema con Ethereal.
  */
-async function sendVerificationCode(destinatario, nombre, codigo, purpose = 'registro') {
-  const esAcceso = purpose === 'acceso';
-  const accion = esAcceso ? 'iniciar sesión' : 'verificar tu cuenta';
+async function sendVerificationCode(destinatario, nombre, codigo) {
   const nombreSeguro = escapeHtml(nombre);
   const codigoSeguro = escapeHtml(codigo);
   const htmlContent = `
@@ -116,7 +114,7 @@ async function sendVerificationCode(destinatario, nombre, codigo, purpose = 'reg
       </div>
       <h3 style="color: #1e293b; font-size: 18px; margin-bottom: 8px;">Hola, ${nombreSeguro}</h3>
       <p style="color: #475569; font-size: 14px; line-height: 1.5; margin-bottom: 24px;">
-        Usa el siguiente código de 6 dígitos para ${accion}:
+        Usa el siguiente código de 6 dígitos para verificar tu cuenta:
       </p>
       <div style="text-align: center; margin: 24px 0; background-color: #f1f5f9; padding: 16px; border-radius: 12px; border: 1px solid #cbd5e1;">
         <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #208AEF;">${codigoSeguro}</span>
