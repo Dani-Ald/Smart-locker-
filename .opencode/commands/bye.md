@@ -6,7 +6,7 @@ Vamos a cerrar la sesión. Nota adicional del usuario (opcional): $ARGUMENTS
 
 Lee @MEMORY.md y @AGENTS.md. Luego ejecuta `git status` y `git diff --stat` para ver qué cambió.
 
-## 1. Numeración
+## 1. Numeración 
 - Lista los archivos de DOCS/ y detecta el número de sesión más alto.
 - La nueva sesión es ese número + 1.
 - Copia exactamente el patrón de nombre de los archivos existentes (dígitos, separadores, mayúsculas). Si no hay patrón claro, usa NN-titulo-corto.md con dos dígitos.
