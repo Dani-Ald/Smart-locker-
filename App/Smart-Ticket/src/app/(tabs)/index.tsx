@@ -9,7 +9,6 @@ import { useSessionContext } from '@/context/SessionContext';
 
 // ─── CONSTANTES DE COLOR ────────────────────────────────────────────────────
 const BRAND_BLUE = '#208AEF';
-const BRAND_BLUE_DARK = '#1A6EC4';
 
 // ─── COMPONENTE PRINCIPAL (pantalla de inicio) ──────────────────────────────
 export default function HomeScreen() {
@@ -87,9 +86,10 @@ export default function HomeScreen() {
 // ─── COMPONENTE LOCAL: ActionCard (tarjeta de acción rápida) ────────────────
 function ActionCard({ emoji, label, bg }: { emoji: string; label: string; bg: string }) {
   return (
-    <TouchableOpacity style={[styles.actionCard, { backgroundColor: bg }]} activeOpacity={0.7}>
+    <TouchableOpacity style={[styles.actionCard, { backgroundColor: bg }]} disabled accessibilityState={{ disabled: true }} accessibilityLabel={`${label}. Próximamente`}>
       <ThemedText style={styles.actionEmoji}>{emoji}</ThemedText>
       <ThemedText type="small" style={styles.actionLabel}>{label}</ThemedText>
+      <ThemedText type="small" themeColor="textSecondary">Próximamente</ThemedText>
     </TouchableOpacity>
   );
 }

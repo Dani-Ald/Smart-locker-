@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Dimensions,
   FlatList,
   Platform,
@@ -15,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import Animated, {
   FadeInDown,
   FadeInUp,
@@ -128,7 +128,7 @@ function FilterChip({
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   function handlePress() {
-    scale.value = withSpring(0.92, {}, () => { scale.value = withSpring(1); });
+    scale.set(withSpring(0.92, {}, () => { scale.set(withSpring(1)); }));
     onPress();
   }
 
@@ -188,7 +188,14 @@ export default function EventosScreen() {
     }
   }, []);
 
-  useEffect(() => { cargarEventos(); }, [cargarEventos]);
+  useFocusEffect(useCallback(() => {
+    let activo = true;
+    getEventos()
+      .then(data => { if (activo) { setEventos(data); setError(null); } })
+      .catch(err => { if (activo) setError(err instanceof Error ? err.message : 'Error al cargar eventos.'); })
+      .finally(() => { if (activo) setCargando(false); });
+    return () => { activo = false; };
+  }, []));
 
   // Filtrado en tiempo real
   const eventosFiltrados = useMemo(() => {
@@ -334,8 +341,13 @@ export default function EventosScreen() {
         ListEmptyComponent={
           <EmptyState
             emoji="🔎"
-            title="Sin resultados"
-            subtitle="Prueba con otra búsqueda o categoría"
+            title={eventos.length === 0 ? 'Sin eventos por ahora' : 'Sin resultados'}
+            subtitle={eventos.length === 0 ? 'Vuelve pronto para ver nuevos eventos.' : 'Prueba con otra búsqueda o categoría.'}
+            actionLabel={eventos.length === 0 ? 'Actualizar' : 'Limpiar filtros'}
+            onAction={() => {
+              if (eventos.length === 0) void cargarEventos();
+              else { setBusqueda(''); setCategoriaSeleccionada('todas'); }
+            }}
             delay={100}
           />
         }

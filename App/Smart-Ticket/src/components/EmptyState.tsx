@@ -24,7 +24,6 @@ import {
   Text,
   TouchableOpacity,
   useColorScheme,
-  View,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -75,6 +74,8 @@ export default function EmptyState({
         <TouchableOpacity
           style={[styles.actionBtn, { backgroundColor: Brand.blue }]}
           onPress={onAction}
+          accessibilityRole="button"
+          accessibilityLabel={actionLabel}
           activeOpacity={0.85}
         >
           <Text style={styles.actionText}>{actionLabel}</Text>
@@ -106,6 +107,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   actionBtn: {
+    minHeight: 44,
     marginTop: Spacing.three,
     paddingHorizontal: Spacing.four,
     paddingVertical: 12,

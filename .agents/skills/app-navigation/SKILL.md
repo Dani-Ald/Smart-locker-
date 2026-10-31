@@ -5,20 +5,26 @@ description: Úsala siempre que crees, modifiques o revises navegación, pantall
 
 # Navegación en Smart-Ticket
 
+Navegación basada en Expo Router con rutas por archivos en `App/Smart-Ticket/src/app`.
+
 ## Reglas
-- Instala las dependencias nativas con `npx expo install`, no con `npm install`, para que las versiones sean compatibles con la versión de Expo del proyecto.
-- Antes de escribir código, consulta la documentación oficial de la versión instalada; no uses ejemplos de memoria.
-- Tipa siempre las rutas y sus parámetros con TypeScript (el proyecto es estricto).
-- Cada navegador en su propio archivo; las pantallas no definen navegadores.
+- Consulta siempre la documentación oficial de Expo Router para la versión instalada del SDK con `context7`; no programes de memoria ni uses ejemplos de versiones distintas.
+- La navegación es por archivos: las rutas y layouts (`_layout.tsx`) residen en `src/app`. Las pantallas reutilizables y la lógica de negocio van en `src/screens/`.
+- Organiza los flujos mediante layouts y grupos de rutas entre paréntesis (por ejemplo, `(auth)`, `(tabs)`), sin alterar la URL pública cuando no corresponda.
+- Usa rutas tipadas (`experiments.typedRoutes: true`): no uses `as any` ni strings sueltos en rutas dinámicas; usa objetos `{ pathname, params }` y valida los parámetros en ejecución.
+- Gestiona la protección de rutas según el estado de sesión de forma centralizada en los layouts (por ejemplo, con `Stack.Protected`), evitando redirecciones redundantes o imperativas dentro de cada pantalla.
+- Instala dependencias nativas con `npx expo install`, nunca con `npm install`, para mantener la compatibilidad con el SDK del proyecto.
 - No cambies `constants/api.ts` ni la URL de la API.
-- Reutiliza los componentes de pantalla existentes antes de crear otros.
+- Reutiliza los componentes y pantallas existentes antes de crear otros nuevos.
 
 ## Checklist de revisión
-- [ ] ¿Se usó `npx expo install` para las dependencias?
-- [ ] ¿Los parámetros de ruta están tipados?
+- [ ] ¿Se consultó la documentación oficial de Expo Router con `context7`?
+- [ ] ¿Las rutas y layouts (`_layout.tsx`, grupos como `(auth)`) están organizados en `src/app` y desacoplados de `src/screens`?
+- [ ] ¿Las rutas y sus parámetros están tipados con `typedRoutes` sin `as any`?
+- [ ] ¿La protección según sesión está centralizada en los layouts?
 - [ ] ¿Pasan `expo lint` y `tsc` sin errores?
-- [ ] ¿Funcionan el botón atrás y la apertura de la app sin sesión?
-- [ ] ¿Se mantuvo el flujo de autenticación existente?
+- [ ] ¿Funcionan el botón atrás, los deep links y el comportamiento sin sesión activa?
+- [ ] ¿Se usó `npx expo install` y no se alteró `constants/api.ts`?
 
 ## Al terminar
 Indica qué puntos del checklist comprobaste y cómo.

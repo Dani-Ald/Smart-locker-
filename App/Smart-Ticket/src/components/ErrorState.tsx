@@ -20,7 +20,6 @@ import {
   Text,
   TouchableOpacity,
   useColorScheme,
-  View,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -69,6 +68,8 @@ export default function ErrorState({
         <TouchableOpacity
           style={[styles.retryBtn, { backgroundColor: Brand.blue }]}
           onPress={onRetry}
+          accessibilityRole="button"
+          accessibilityLabel={retryLabel}
           activeOpacity={0.85}
         >
           <Text style={styles.retryText}>{retryLabel}</Text>
@@ -101,6 +102,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   retryBtn: {
+    minHeight: 44,
     marginTop: Spacing.three,
     paddingHorizontal: Spacing.four,
     paddingVertical: 12,

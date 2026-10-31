@@ -46,8 +46,6 @@ export default function LoginScreen() {
     try {
       const sesion = await login({ correo: correo.trim().toLowerCase(), password });
       await saveSession(sesion);
-      // Redirige al área de tabs (home)
-      router.replace('/');
     } catch (err) {
       if (err instanceof AuthError) {
         setError(err.message);
@@ -180,7 +178,7 @@ export default function LoginScreen() {
             <Text style={[styles.footerText, { color: textSecondary }]}>
               ¿No tienes cuenta?{' '}
             </Text>
-            <TouchableOpacity onPress={() => router.push('/(auth)/register' as any)}>
+            <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
               <Text style={[styles.footerLink, { color: BRAND }]}>Regístrate</Text>
             </TouchableOpacity>
           </View>

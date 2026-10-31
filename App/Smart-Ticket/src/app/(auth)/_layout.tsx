@@ -2,6 +2,8 @@ import { Stack } from 'expo-router';
 import { useColorScheme } from 'react-native';
 import { Colors } from '@/constants/theme';
 
+export const unstable_settings = { initialRouteName: 'login' };
+
 export default function AuthLayout() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];

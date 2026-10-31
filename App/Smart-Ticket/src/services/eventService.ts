@@ -24,6 +24,22 @@ export interface EventosResponse {
 
 // ─── Servicio ─────────────────────────────────────────────────────────────────
 
+export class EventoError extends Error {
+  constructor(message: string, public readonly status?: number) {
+    super(message);
+    this.name = 'EventoError';
+  }
+}
+
+function esEvento(value: unknown): value is Evento {
+  if (typeof value !== 'object' || value === null) return false;
+  const evento = value as Record<string, unknown>;
+  return ['_id', 'nombre', 'categoria', 'municipio', 'fechaHora', 'ubicacion', 'descripcion', 'estado']
+    .every(key => typeof evento[key] === 'string') &&
+    ['precioDesde', 'aforoTotal', 'aforoVendido']
+      .every(key => typeof evento[key] === 'number' && Number.isFinite(evento[key]));
+}
+
 /**
  * Obtiene todos los eventos activos ordenados por fecha ASC.
  * @throws Error si falla la petición o la red.
@@ -43,10 +59,15 @@ export async function getEventos(): Promise<Evento[]> {
     throw new Error(`Error al cargar eventos (${respuesta.status})`);
   }
 
-  const data = await respuesta.json();
+  const data: unknown = await respuesta.json();
 
   // La API puede devolver array directo o { data: [...] }
-  return Array.isArray(data) ? data : (data.data ?? []);
+  const lista = Array.isArray(data) ? data :
+    typeof data === 'object' && data !== null && 'data' in data ? data.data : null;
+  if (!Array.isArray(lista) || !lista.every(esEvento)) {
+    throw new EventoError('El servidor devolvió un catálogo inválido. Intenta nuevamente.');
+  }
+  return lista;
 }
 
 /**
@@ -65,13 +86,15 @@ export async function getEventoById(id: string): Promise<Evento> {
   }
 
   if (respuesta.status === 404) {
-    throw new Error('Evento no encontrado.');
+    throw new EventoError('Evento no encontrado.', 404);
   }
   if (!respuesta.ok) {
-    throw new Error(`Error al cargar el evento (${respuesta.status})`);
+    throw new EventoError(`Error al cargar el evento (${respuesta.status})`, respuesta.status);
   }
 
-  return await respuesta.json();
+  const evento: unknown = await respuesta.json();
+  if (!esEvento(evento)) throw new EventoError('El servidor devolvió un evento inválido. Intenta nuevamente.');
+  return evento;
 }
 
 // ─── Crear evento ──────────────────────────────────────────────────────────────
@@ -117,4 +140,3 @@ export async function createEvento(payload: CreateEventoPayload): Promise<Evento
 
   return await respuesta.json();
 }
-

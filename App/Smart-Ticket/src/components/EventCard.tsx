@@ -91,7 +91,7 @@ export default function EventCard({ evento }: EventCardProps) {
     <TouchableOpacity
       style={[styles.card, { backgroundColor: colors.backgroundElement }]}
       activeOpacity={0.75}
-      onPress={() => router.push(`/evento/${evento._id}` as any)}
+      onPress={() => router.push({ pathname: '/evento/[id]', params: { id: evento._id } })}
       accessibilityRole="button"
       accessibilityLabel={`Ver detalles de ${evento.nombre}`}>
 
@@ -130,7 +130,7 @@ export default function EventCard({ evento }: EventCardProps) {
               style={[
                 styles.aforoFill,
                 {
-                  width: `${Math.min((evento.aforoVendido / evento.aforoTotal) * 100, 100)}%` as any,
+                  width: `${Math.min((evento.aforoVendido / evento.aforoTotal) * 100, 100)}%`,
                   backgroundColor: agotado ? '#ef4444' : BRAND,
                 },
               ]}

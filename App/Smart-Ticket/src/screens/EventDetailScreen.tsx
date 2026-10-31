@@ -10,7 +10,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
@@ -20,7 +20,10 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { AppColors, Colors, Spacing } from '@/constants/theme';
-import { Evento, getEventoById } from '@/services/eventService';
+import { Evento, EventoError, getEventoById } from '@/services/eventService';
+import ErrorState from '@/components/ErrorState';
+import EmptyState from '@/components/EmptyState';
+import { esIdEvento, volverOIr } from '@/navigation/routes';
 
 const BRAND = '#208AEF';
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -98,21 +101,34 @@ const infoStyles = StyleSheet.create({
 // ── EventDetailScreen ──────────────────────────────────────────────────────
 
 export default function EventDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<'/evento/[id]'>();
+  return <EventDetailContent key={id} id={id} />;
+}
+
+function EventDetailContent({ id }: { id: string }) {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 
   const [evento, setEvento] = useState<Evento | null>(null);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [cargando, setCargando] = useState(esIdEvento(id));
+  const [error, setError] = useState<string | null>(esIdEvento(id) ? null : 'ID de evento no válido.');
+  const [noEncontrado, setNoEncontrado] = useState(false);
+  const [intento, setIntento] = useState(0);
+  const volver = () => volverOIr('/eventos');
 
   useEffect(() => {
-    if (!id) { setError('ID de evento no válido.'); setCargando(false); return; }
+    let activo = true;
+    if (!esIdEvento(id)) return;
     getEventoById(id)
-      .then(setEvento)
-      .catch(err => setError(err instanceof Error ? err.message : 'Error desconocido.'))
-      .finally(() => setCargando(false));
-  }, [id]);
+      .then(data => { if (activo) setEvento(data); })
+      .catch(err => {
+        if (!activo) return;
+        setNoEncontrado(err instanceof EventoError && err.status === 404);
+        setError(err instanceof Error ? err.message : 'Error desconocido.');
+      })
+      .finally(() => { if (activo) setCargando(false); });
+    return () => { activo = false; };
+  }, [id, intento]);
 
   const bg = colors.background;
   const textColor = colors.text;
@@ -123,7 +139,7 @@ export default function EventDetailScreen() {
   if (cargando) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={volver} accessibilityLabel="Volver a la pantalla anterior">
           <Text style={[styles.backText, { color: BRAND }]}>← Volver</Text>
         </TouchableOpacity>
         <View style={styles.center}>
@@ -138,20 +154,22 @@ export default function EventDetailScreen() {
   if (error || !evento) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={volver} accessibilityLabel="Volver a la pantalla anterior">
           <Text style={[styles.backText, { color: BRAND }]}>← Volver</Text>
         </TouchableOpacity>
         <View style={styles.center}>
-          <Text style={styles.errorEmoji}>😕</Text>
-          <Text style={[styles.errorTitulo, { color: textColor }]}>Algo salió mal</Text>
-          <Text style={[styles.errorSub, { color: textSecondary }]}>
-            {error ?? 'No se pudo cargar el evento.'}
-          </Text>
-          <TouchableOpacity
-            style={[styles.retryBtn, { backgroundColor: BRAND }]}
-            onPress={() => router.back()}>
-            <Text style={styles.retryText}>Regresar</Text>
-          </TouchableOpacity>
+          {noEncontrado ? (
+            <EmptyState emoji="🎪" title="Evento no encontrado" subtitle="El evento ya no está disponible." actionLabel="Volver" onAction={volver} />
+          ) : (
+            <ErrorState
+              title={esIdEvento(id) ? 'No se pudo cargar el evento' : 'Enlace inválido'}
+              message={error ?? 'No se pudo cargar el evento.'}
+              onRetry={esIdEvento(id) ? () => {
+                setCargando(true); setError(null); setNoEncontrado(false);
+                setIntento(value => value + 1);
+              } : undefined}
+            />
+          )}
         </View>
       </SafeAreaView>
     );
@@ -181,7 +199,7 @@ export default function EventDetailScreen() {
           {/* Botón volver superpuesto */}
           <TouchableOpacity
             style={styles.heroBack}
-            onPress={() => router.back()}
+            onPress={volver}
             accessibilityLabel="Volver">
             <View style={styles.heroBackBubble}>
               <Text style={styles.heroBackIcon}>←</Text>

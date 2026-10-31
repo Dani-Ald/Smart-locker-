@@ -23,7 +23,18 @@ In the output, you'll find options to open the app in a
 - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
 - [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Navegación y verificación
+
+Las rutas están en `src/app/`: Stack raíz con `(auth)`, `(tabs)` y `evento/[id]` fuera de las pestañas. Las pantallas reutilizables están en `src/screens/`.
+
+La aplicación usa Expo Router SDK 57 y rutas tipadas. Catálogo, detalle y publicación requieren sesión; en web la sesión se pierde al recargar. La protección de navegación no sustituye la autenticación pendiente en API.
+
+```bash
+npm run lint
+npx tsc --noEmit
+```
+
+Consulta la matriz de pruebas y decisiones en [DOCS/18](../../DOCS/18-navegacion-expo-router-sdk57.md). La exportación web estática necesita comprobar el fallback de enlaces dinámicos en el alojamiento.
 
 ## Get a fresh project
 

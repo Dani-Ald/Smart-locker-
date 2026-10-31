@@ -1,68 +1,82 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ActivityIndicator, View, useColorScheme } from 'react-native';
-import { DarkTheme, DefaultTheme, ThemeProvider, Slot, router, useSegments } from 'expo-router';
+import { DarkTheme, DefaultTheme, ThemeProvider, Stack, router, usePathname, useRootNavigationState, type Href } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import ErrorState from '@/components/ErrorState';
 import { ToastRoot } from '@/components/Toast';
+import { Brand, Colors } from '@/constants/theme';
 import { SessionProvider, useSessionContext } from '@/context/SessionContext';
 import { useOtaUpdate } from '@/hooks/use-ota-update';
+import { destinoEvento } from '@/navigation/routes';
 
-SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync();
 
-function AuthGuard() {
-  const { session, isLoading } = useSessionContext();
-  const segments = useSegments();
+export const unstable_settings = { anchor: '(tabs)' };
+
+function RootNavigator() {
+  const { session, isLoading, storageError, logoutError, retrySession, clearSession } = useSessionContext();
+  const pathname = usePathname();
+  const navigation = useRootNavigationState();
+  const pendiente = useRef<Href | null>(null);
+  const tuvoSesion = useRef(false);
+  const scheme = useColorScheme();
+  const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 
   useEffect(() => {
-    if (isLoading) return;
-
-    const inAuthGroup = (segments[0] as string) === '(auth)';
-
-    if (!session && !inAuthGroup) {
-      // Redirigir obligatoriamente a la pantalla de Login si no hay sesión activa
-      router.replace('/(auth)/login' as any);
-    } else if (session && inAuthGroup) {
-      // Redirigir a la pantalla principal si ya hay sesión activa
-      router.replace('/');
+    if (!session) {
+      // Un logout nunca debe guardar como destino la pantalla que se abandona.
+      if (tuvoSesion.current) pendiente.current = null;
+      else pendiente.current = destinoEvento(pathname) ?? pendiente.current;
+      if (pathname === '/login' || pathname === '/register') tuvoSesion.current = false;
+    } else if (!isLoading && navigation?.key && pendiente.current) {
+      const destino = pendiente.current;
+      pendiente.current = null;
+      router.navigate(destino, { withAnchor: true });
     }
-  }, [session, isLoading, segments]);
+    if (session) tuvoSesion.current = true;
+  }, [session, isLoading, pathname, navigation?.key]);
 
-  if (isLoading) {
+  if (isLoading || storageError || logoutError) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
-        <ActivityIndicator size="large" color="#208AEF" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        {logoutError ? (
+          <ErrorState title="No se pudo borrar la sesión guardada" message={logoutError} onRetry={() => {
+            // El hook conserva el error visible si el reintento también falla.
+            void clearSession().catch(() => {});
+          }} />
+        ) : storageError ? (
+          <ErrorState title="No se pudo leer la sesión" message={storageError} onRetry={() => void retrySession()} />
+        ) : <ActivityIndicator size="large" color={Brand.blue} accessibilityLabel="Cargando sesión" />}
       </View>
     );
   }
 
-  // Si no hay sesión activa, mostrar únicamente las pantallas de autenticación (Login/Registro)
-  if (!session) {
-    return <Slot />;
-  }
-
-  // Si hay sesión activa, mostrar la aplicación principal con sus pestañas de navegación
   return (
-    <>
-      <AppTabs />
-      {/* Toast global — debe estar al final para quedar encima de todo */}
-      <ToastRoot />
-    </>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={!!session}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="evento/[id]" />
+        <Stack.Screen name="explore" />
+      </Stack.Protected>
+      <Stack.Protected guard={!session}>
+        <Stack.Screen name="(auth)" />
+      </Stack.Protected>
+      <Stack.Screen name="+not-found" />
+    </Stack>
   );
 }
 
-export default function TabLayout() {
+export default function RootLayout() {
   const colorScheme = useColorScheme();
-
-  // Busca y aplica updates OTA al arrancar
   useOtaUpdate();
-
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <SessionProvider>
         <AnimatedSplashOverlay />
-        <AuthGuard />
+        <RootNavigator />
+        <ToastRoot />
       </SessionProvider>
     </ThemeProvider>
   );

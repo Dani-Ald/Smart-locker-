@@ -23,7 +23,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 // ─── Hook de consumo ──────────────────────────────────────────────────────────
 
 /**
- * Devuelve { session, isLoading, saveSession, clearSession }.
+ * Expone sesión, carga, errores recuperables y acciones de persistencia.
  * Lanza error si se usa fuera de SessionProvider.
  */
 export function useSessionContext(): UseSessionReturn {

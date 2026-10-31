@@ -21,6 +21,7 @@ import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
+  cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -55,7 +56,7 @@ function Dot({
   const translateY = useSharedValue(0);
 
   useEffect(() => {
-    translateY.value = withDelay(
+    translateY.set(withDelay(
       delayMs,
       withRepeat(
         withSequence(
@@ -65,8 +66,9 @@ function Dot({
         -1, // infinito
         false,
       ),
-    );
-  }, []);
+    ));
+    return () => cancelAnimation(translateY);
+  }, [delayMs, translateY]);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],

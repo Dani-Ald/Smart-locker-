@@ -6,12 +6,12 @@ import {
   TabTriggerSlotProps,
   TabListProps,
 } from 'expo-router/ui';
-import { Pressable, useColorScheme, View, StyleSheet } from 'react-native';
+import { Pressable, View, StyleSheet } from 'react-native';
 
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 
 export default function AppTabs() {
   return (
@@ -25,10 +25,10 @@ export default function AppTabs() {
           <TabTrigger name="eventos" href="/eventos" asChild>
             <TabButton>Eventos</TabButton>
           </TabTrigger>
-          <TabTrigger name="dashboard" href={'/dashboard' as any} asChild>
+           <TabTrigger name="dashboard" href="/dashboard" asChild>
             <TabButton>Mi cuenta</TabButton>
           </TabTrigger>
-          <TabTrigger name="create-event" href={'/create-event' as any} asChild>
+           <TabTrigger name="create-event" href="/create-event" asChild>
             <TabButton>Publicar</TabButton>
           </TabTrigger>
         </CustomTabList>

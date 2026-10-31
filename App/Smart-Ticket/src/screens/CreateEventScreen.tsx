@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  BackHandler,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,7 +14,8 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect, useIsFocused, useNavigation } from 'expo-router';
+import { usePreventRemove } from 'expo-router/react-navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -20,6 +23,7 @@ import { useSessionContext } from '@/context/SessionContext';
 import Toast from '@/components/Toast';
 import { createEvento } from '@/services/eventService';
 import { AppColors, Colors, Spacing } from '@/constants/theme';
+import { volverOIr } from '@/navigation/routes';
 
 const BRAND = '#208AEF';
 const BRAND_DARK = '#1A6EC4';
@@ -116,6 +120,89 @@ export default function CreateEventScreen() {
   const [cargando, setCargando] = useState(false);
   const [exito, setExito] = useState(false);
   const [mostrarMunicipios, setMostrarMunicipios] = useState(false);
+  const focused = useIsFocused();
+  const enviando = useRef(false);
+  const navegacionProgramada = useRef(false);
+  const descarteAutorizado = useRef(false);
+  const navigation = useNavigation();
+  const conCambios = !exito && [nombre, categoria, municipio, municipioCustom, fecha, hora, ubicacion, descripcion, precio, aforo, imagenUrl].some(Boolean);
+
+  const limpiarFormulario = useCallback(() => {
+    setNombre(''); setCategoria(''); setMunicipio(''); setMunicipioCustom('');
+    setFecha(''); setHora(''); setUbicacion(''); setDescripcion('');
+    setPrecio(''); setAforo(''); setImagenUrl('');
+  }, []);
+
+  const descartar = useCallback(() => {
+    descarteAutorizado.current = true;
+    limpiarFormulario();
+    volverOIr('/eventos');
+  }, [limpiarFormulario]);
+
+  usePreventRemove(conCambios && !!session, ({ data }) => {
+    if (descarteAutorizado.current) {
+      descarteAutorizado.current = false;
+      navigation.dispatch(data.action);
+      return;
+    }
+    if (enviando.current) {
+      Toast.info('Publicación en curso', 'Espera la respuesta del servidor.');
+      return;
+    }
+    const continuar = () => { limpiarFormulario(); navigation.dispatch(data.action); };
+    if (Platform.OS === 'web') {
+      if (window.confirm('¿Descartar los cambios del evento?')) continuar();
+    } else {
+      Alert.alert('¿Descartar cambios?', 'Los datos del evento aún no se han guardado.', [
+        { text: 'Seguir editando', style: 'cancel' },
+        { text: 'Descartar', style: 'destructive', onPress: continuar },
+      ]);
+    }
+  });
+
+  useEffect(() => { descarteAutorizado.current = false; }, [conCambios]);
+
+  const volver = useCallback(() => {
+    if (enviando.current) {
+      Toast.info('Publicación en curso', 'Espera la respuesta del servidor.');
+      return;
+    }
+    if (!conCambios) { volverOIr('/eventos'); return; }
+    if (Platform.OS === 'web') {
+      if (window.confirm('¿Descartar los cambios del evento?')) descartar();
+    } else {
+      Alert.alert('¿Descartar cambios?', 'Los datos del evento aún no se han guardado.', [
+        { text: 'Seguir editando', style: 'cancel' },
+        { text: 'Descartar', style: 'destructive', onPress: descartar },
+      ]);
+    }
+  }, [conCambios, descartar]);
+
+  useFocusEffect(useCallback(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!conCambios && !enviando.current) return false;
+      volver();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [conCambios, volver]));
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !conCambios) return;
+    const proteger = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', proteger);
+    return () => window.removeEventListener('beforeunload', proteger);
+  }, [conCambios]);
+
+  useEffect(() => {
+    if (!exito || !focused || navegacionProgramada.current) return;
+    navegacionProgramada.current = true;
+    const timeout = setTimeout(() => {
+      setExito(false);
+      router.replace('/eventos');
+    }, 2000);
+    return () => clearTimeout(timeout);
+  }, [exito, focused]);
 
   const municipioFinal = municipio === '__custom__' ? municipioCustom : municipio;
 
@@ -138,12 +225,14 @@ export default function CreateEventScreen() {
 
   // ── Enviar ───────────────────────────────────────────────────────────────
   async function handleSubmit() {
+    if (enviando.current) return;
     const mensajeError = validar();
     if (mensajeError) {
       Toast.error('Campos incompletos', mensajeError);
       return;
     }
 
+    enviando.current = true;
     setCargando(true);
     try {
       await createEvento({
@@ -160,14 +249,16 @@ export default function CreateEventScreen() {
       });
 
       Toast.success('¡Evento creado!', 'Guardado como borrador. Redirigiendo…');
+      limpiarFormulario();
+      navegacionProgramada.current = false;
       setExito(true);
-      setTimeout(() => router.replace('/eventos'), 2000);
     } catch (err) {
       Toast.error(
         'Error al crear el evento',
         err instanceof Error ? err.message : 'Intenta de nuevo.',
       );
     } finally {
+      enviando.current = false;
       setCargando(false);
     }
   }
@@ -185,9 +276,15 @@ export default function CreateEventScreen() {
           <Text style={styles.exitoEmoji}>🎉</Text>
           <Text style={[styles.exitoTitulo, { color: textColor }]}>¡Evento creado!</Text>
           <Text style={[styles.exitoSub, { color: textSecondary }]}>
-            Tu evento fue guardado como borrador.{'\n'}Redirigiendo a Eventos…
+            Tu evento fue guardado como borrador.
           </Text>
-          <ActivityIndicator color={BRAND} style={{ marginTop: Spacing.three }} />
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Ir a Eventos"
+            style={{ minHeight: 44, justifyContent: 'center', marginTop: Spacing.three }}
+            onPress={() => { setExito(false); router.replace('/eventos'); }}>
+            <Text style={[styles.backLink, { color: BRAND }]}>Ir a Eventos</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -206,7 +303,7 @@ export default function CreateEventScreen() {
 
           {/* Header */}
           <Animated.View entering={FadeInDown.delay(0).springify()} style={styles.pageHeader}>
-            <TouchableOpacity onPress={() => router.back()}>
+            <TouchableOpacity onPress={volver} accessibilityLabel="Volver" style={{ minHeight: 44, justifyContent: 'center' }}>
               <Text style={[styles.backLink, { color: BRAND }]}>← Volver</Text>
             </TouchableOpacity>
             <Text style={[styles.pageTitle, { color: textColor }]}>Nuevo evento</Text>

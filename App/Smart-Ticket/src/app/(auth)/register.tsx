@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ActivityIndicator,
+  BackHandler,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,11 +13,13 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect, useIsFocused } from 'expo-router';
+import { usePreventRemove } from 'expo-router/react-navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { register, verificarCodigo, reenviarCodigo, AuthError } from '@/services/authService';
 import { Colors, Spacing } from '@/constants/theme';
+import { volverOIr } from '@/navigation/routes';
 
 const BRAND = '#208AEF';
 const BRAND_DARK = '#1A6EC4';
@@ -44,6 +47,28 @@ export default function RegisterScreen() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoMensaje, setInfoMensaje] = useState<string | null>(null);
+  const focused = useIsFocused();
+
+  const volver = useCallback(() => {
+    if (paso === 'verificacion') setPaso('registro');
+    else volverOIr('/(auth)/login');
+  }, [paso]);
+
+  usePreventRemove(paso === 'verificacion', () => setPaso('registro'));
+  useFocusEffect(useCallback(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (paso !== 'verificacion') return false;
+      setPaso('registro');
+      return true;
+    });
+    return () => subscription.remove();
+  }, [paso]));
+
+  useEffect(() => {
+    if (paso !== 'exito' || !focused) return;
+    const timeout = setTimeout(() => router.replace('/(auth)/login'), 2000);
+    return () => clearTimeout(timeout);
+  }, [paso, focused]);
 
   // Temporizador para el reenvío de código
   useEffect(() => {
@@ -137,7 +162,6 @@ export default function RegisterScreen() {
         codigo: codigo.trim(),
       });
       setPaso('exito');
-      setTimeout(() => router.replace('/(auth)/login' as any), 2000);
     } catch (err) {
       if (err instanceof AuthError) {
         setError(err.message);
@@ -466,7 +490,7 @@ export default function RegisterScreen() {
             <Text style={[styles.footerText, { color: textSecondary }]}>
               ¿Ya tienes cuenta?{' '}
             </Text>
-            <TouchableOpacity onPress={() => router.back()}>
+            <TouchableOpacity onPress={volver} accessibilityLabel="Volver">
               <Text style={[styles.footerLink, { color: BRAND }]}>Inicia sesión</Text>
             </TouchableOpacity>
           </View>

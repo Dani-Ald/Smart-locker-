@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   ActivityIndicator,
   FlatList,
@@ -11,7 +12,6 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   FadeInDown,
@@ -22,14 +22,12 @@ import Animated, {
 import EventCard, { EventCardSkeleton } from '@/components/EventCard';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
-import LoadingDots from '@/components/LoadingDots';
 import Toast from '@/components/Toast';
 import { useSessionContext } from '@/context/SessionContext';
 import { AppColors, Colors, Spacing } from '@/constants/theme';
 import { Evento, getEventos } from '@/services/eventService';
 
 const BRAND = '#208AEF';
-const BRAND_LIGHT = '#e0f0ff';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -105,7 +103,7 @@ const statStyles = StyleSheet.create({
 export default function DashboardScreen() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
-  const { session, clearSession, isLoading: sessionLoading } = useSessionContext();
+  const { session, clearSession } = useSessionContext();
 
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -129,20 +127,26 @@ export default function DashboardScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    // Si no hay sesión y ya terminó de cargar → redirigir a login
-    if (!sessionLoading && !session) {
-      router.replace('/(auth)/login' as any);
-      return;
-    }
-    cargarEventos();
-  }, [sessionLoading, session, cargarEventos]);
+  useFocusEffect(useCallback(() => {
+    let activo = true;
+    getEventos()
+      .then(data => { if (activo) { setEventos(data); setError(null); } })
+      .catch(err => { if (activo) setError(err instanceof Error ? err.message : 'Error al cargar eventos.'); })
+      .finally(() => { if (activo) setCargando(false); });
+    return () => { activo = false; };
+  }, []));
 
   async function handleLogout() {
+    if (cerrandoSesion) return;
     setCerrandoSesion(true);
-    Toast.info('Cerrando sesión…', 'Hasta pronto 👋');
-    await clearSession();
-    router.replace('/(auth)/login' as any);
+    try {
+      await clearSession();
+      Toast.info('Sesión cerrada', 'Hasta pronto 👋');
+    } catch (err) {
+      Toast.error('Sesión cerrada solo en memoria', err instanceof Error ? err.message : 'No se pudo borrar el almacenamiento.');
+    } finally {
+      setCerrandoSesion(false);
+    }
   }
 
   // Stats calculadas en cliente
@@ -230,16 +234,6 @@ export default function DashboardScreen() {
   );
 
   // ── Render ───────────────────────────────────────────────────────────────
-
-  if (sessionLoading) {
-    return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
-        <View style={styles.center}>
-          <LoadingDots />
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   if (error) {
     return (
