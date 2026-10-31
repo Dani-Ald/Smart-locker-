@@ -8,7 +8,8 @@
     "start": "node src/index.js",
     "seed": "node src/seeder.js",
     "seed:limpiar": "node src/seeder.js --limpiar",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "keys:qr": "node scripts/generate-qr-keys.js",
+    "test": "node --test"
   },
   "keywords": [
     "smart-ticket",
@@ -17,7 +18,7 @@
     "mongodb"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "cors": "^2.8.6",

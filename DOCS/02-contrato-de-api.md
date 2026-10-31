@@ -46,6 +46,13 @@ Convención general: rutas bajo `/api/v1/...`, respuestas en JSON, errores con f
 | POST | `/api/v1/boletos` | Aparta/compra un boleto | RF-06, RF-07 |
 | GET | `/api/v1/boletos/:id` | Detalle de un boleto (para "Mis boletos") | — |
 | PUT | `/api/v1/boletos/:id/estado` | Cambia estado (`pagado`, `usado`, `cancelado`) | RF-07 |
+| GET | `/api/v1/boletos/mios` | Lista los boletos del usuario autenticado, con evento y payload QR firmado | Wallet móvil |
+| GET | `/api/v1/boletos/clave-publica` | Publica la clave Ed25519 activa para validadores | Anti-fraude |
+
+`GET /boletos/mios` requiere `Authorization: Bearer <token>`. La respuesta es
+`{ "data": BoletoWallet[], "sincronizadoAt": "ISO 8601" }`. Cada boleto pagado o
+usado incluye `qrPayload`, una cadena firmada con Ed25519 que la app renderiza
+localmente. La clave privada nunca se entrega al cliente.
 
 **Body de creación (`POST /boletos`):**
 ```json
@@ -77,17 +84,43 @@ Respuesta incluye el `boleto` creado y, si `metodoPago` es `linea`, los datos ne
 |---|---|---|
 | POST | `/api/v1/usuarios` | Registro simple (nombre, email, teléfono) |
 | GET | `/api/v1/usuarios/:id/boletos` | Boletos comprados por ese usuario |
+| POST | `/api/v1/usuarios/solicitar-codigo-acceso` | Envía un OTP de acceso de 6 dígitos; la respuesta no revela si existe el correo |
+| POST | `/api/v1/usuarios/verificar-codigo-acceso` | Valida OTP y crea una sesión segura |
+| POST | `/api/v1/usuarios/logout` | Revoca la sesión actual |
+
+**Verificación de acceso:**
+```json
+{
+  "correo": "persona@ejemplo.com",
+  "codigo": "123456"
+}
+```
+
+Respuesta: `{ "token", "nombre", "correo", "id" }`. El token es opaco, se
+guarda únicamente como hash en servidor, expira y debe enviarse como Bearer.
 
 ---
 
-## 5. Pendiente de definir en un documento aparte
+## 5. Reseñas
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/api/v1/eventos/:id/resenas` | Crea o actualiza la reseña del usuario autenticado |
+| GET | `/api/v1/eventos/:id/resenas/mia` | Obtiene la reseña propia |
+
+Solo puede reseñar un usuario con un boleto en estado `usado` para ese evento.
+Body: `{ "calificacion": 1..5, "comentario": "string (máx. 1000)" }`.
+
+---
+
+## 6. Pendiente de definir en un documento aparte
 
 - **Pasarela de pago:** cómo se conecta `POST /boletos` con Mercado Pago (o la que elijas) — esto amerita su propio documento (03) cuando llegue el momento, no hay que resolverlo antes de tener las pantallas básicas de catálogo y compra funcionando con datos simulados.
 - **Autenticación:** por ahora este contrato no incluye login/tokens. Defínelo cuando tengas el catálogo público funcionando — probablemente solo el organizador necesita auth real; el comprador puede operar con datos mínimos (nombre/teléfono) al momento de comprar.
 
 ---
 
-## 6. Cómo usar esto mientras programas
+## 7. Cómo usar esto mientras programas
 
 - En `App/Smart-Ticket/api/` y en `WEB/js/api.js`, cada función debe llamar exactamente a una de estas rutas — si te encuentras necesitando algo que no está aquí, para y agrégalo a este documento antes de improvisar un endpoint nuevo directo en el código.
 - Mientras `API/` no exista todavía, puedes simular estas respuestas con datos fijos (mocks) en el frontend, para poder avanzar en pantallas sin bloquearte esperando el backend.

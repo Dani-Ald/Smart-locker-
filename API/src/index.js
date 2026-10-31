@@ -13,6 +13,8 @@ const cors    = require('cors');
 const connectDB   = require('./db');
 const eventosRouter = require('./routes/eventos');
 const usuariosRouter = require('./routes/usuarios');
+const boletosRouter = require('./routes/boletos');
+const resenasRouter = require('./routes/resenas');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -30,6 +32,8 @@ app.get('/api/v1/health', (req, res) => {
 // â”€â”€ Rutas de entidades â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.use('/api/v1/eventos', eventosRouter);
 app.use('/api/v1/usuarios', usuariosRouter);
+app.use('/api/v1/boletos', boletosRouter);
+app.use('/api/v1/eventos/:id/resenas', resenasRouter);
 
 // â”€â”€ Arranque â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 connectDB().then(() => {

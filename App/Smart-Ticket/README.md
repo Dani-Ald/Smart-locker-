@@ -1,67 +1,38 @@
-# Welcome to your Expo app 👋
+# Smart Ticket Wallet
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicación Expo SDK 57 para custodiar y presentar boletos digitales de Smart Ticket.
 
-## Get started
+## Requisitos
 
-1. Install dependencies
+- Node.js 22.13 o posterior.
+- Android 7+ o iOS 16.4+.
+- Development build para probar Face ID; Expo Go no lo soporta.
 
-   ```bash
-   npm install
-   ```
+## Inicio
 
-2. Start the app
+```bash
+npm install
+npm start
+```
 
-   ```bash
-   npx expo start
-   ```
+La URL de API permanece centralizada en `src/constants/api.ts`. Las compras y publicación de eventos abren la web configurada en `src/constants/web.ts`.
 
-In the output, you'll find options to open the app in a
+## Arquitectura
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- `src/app/`: rutas Expo Router y protección centralizada.
+- `src/screens/`: pantallas Wallet, Historial, Explorar, Perfil y detalle de boleto.
+- `src/data/`: repositorio SQLite con implementación segura para web.
+- `src/services/`: API, navegación externa y biometría.
+- `src/hooks/use-wallet.ts`: lectura local inmediata y sincronización al recuperar red.
 
-## Navegación y verificación
+El QR se renderiza localmente desde `qrPayload`. La app no contiene la clave privada Ed25519.
 
-Las rutas están en `src/app/`: Stack raíz con `(auth)`, `(tabs)` y `evento/[id]` fuera de las pestañas. Las pantallas reutilizables están en `src/screens/`.
-
-La aplicación usa Expo Router SDK 57 y rutas tipadas. Catálogo, detalle y publicación requieren sesión; en web la sesión se pierde al recargar. La protección de navegación no sustituye la autenticación pendiente en API.
+## Validación
 
 ```bash
 npm run lint
 npx tsc --noEmit
+npx expo export --platform web
 ```
 
-Consulta la matriz de pruebas y decisiones en [DOCS/18](../../DOCS/18-navegacion-expo-router-sdk57.md). La exportación web estática necesita comprobar el fallback de enlaces dinámicos en el alojamiento.
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+La matriz de pruebas en modo avión está en `../../DOCS/19-wallet-offline-first.md`.

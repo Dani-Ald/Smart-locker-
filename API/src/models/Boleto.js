@@ -15,7 +15,7 @@ const boletoSchema = new mongoose.Schema(
     },
     usuarioId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Usuario',
+      ref: 'UsuarioAuth',
       default: null, // Puede ser nulo si el comprador no se identificó aún
     },
     tipoBoleto: { type: String, required: true }, // Ej. General, VIP, Preventa
@@ -32,6 +32,8 @@ const boletoSchema = new mongoose.Schema(
     },
     // Placeholder — se generará como UUID+QR en fase posterior (RF-08)
     codigoVerificacion: { type: String, default: null },
+    qrPayload: { type: String, default: null },
+    qrGeneradoAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

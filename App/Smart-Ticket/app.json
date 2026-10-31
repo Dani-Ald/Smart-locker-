@@ -11,6 +11,9 @@
       "icon": "./assets/images/icon.png"
     },
     "android": {
+      "permissions": [
+        "android.permission.WRITE_SETTINGS"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/adaptive-icon.png"
@@ -36,7 +39,16 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-sqlite",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Permite que Smart Ticket use Face ID para proteger tus boletos guardados."
+        }
+      ],
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

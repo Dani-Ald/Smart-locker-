@@ -1,14 +1,14 @@
 import { router, type Href } from 'expo-router';
 
 /** Los enlaces externos necesitan validación además del tipado de TypeScript. */
-export function esIdEvento(id: unknown): id is string {
+export function esIdBoleto(id: unknown): id is string {
   return typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
 }
 
-export function destinoEvento(pathname: string): Href | null {
-  const match = /^\/evento\/([^/]+)\/?$/.exec(pathname);
-  return match && esIdEvento(match[1])
-    ? { pathname: '/evento/[id]', params: { id: match[1] } }
+export function destinoBoleto(pathname: string): Href | null {
+  const match = /^\/boleto\/([^/]+)\/?$/.exec(pathname);
+  return match && esIdBoleto(match[1])
+    ? { pathname: '/boleto/[id]', params: { id: match[1] } }
     : null;
 }
 

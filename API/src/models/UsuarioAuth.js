@@ -13,6 +13,9 @@ const usuarioAuthSchema = new mongoose.Schema(
     verificationToken: { type: String, default: null },
     codigoVerificacion:{ type: String, default: null },
     codigoExpira:      { type: Date, default: null },
+    codigoAccesoHash:  { type: String, default: null },
+    codigoAccesoExpira:{ type: Date, default: null },
+    intentosCodigoAcceso: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

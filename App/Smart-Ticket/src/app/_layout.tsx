@@ -4,12 +4,13 @@ import { DarkTheme, DefaultTheme, ThemeProvider, Stack, router, usePathname, use
 import * as SplashScreen from 'expo-splash-screen';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { BiometricGate } from '@/components/security/BiometricGate';
 import ErrorState from '@/components/ErrorState';
 import { ToastRoot } from '@/components/Toast';
 import { Brand, Colors } from '@/constants/theme';
 import { SessionProvider, useSessionContext } from '@/context/SessionContext';
 import { useOtaUpdate } from '@/hooks/use-ota-update';
-import { destinoEvento } from '@/navigation/routes';
+import { destinoBoleto } from '@/navigation/routes';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -28,7 +29,7 @@ function RootNavigator() {
     if (!session) {
       // Un logout nunca debe guardar como destino la pantalla que se abandona.
       if (tuvoSesion.current) pendiente.current = null;
-      else pendiente.current = destinoEvento(pathname) ?? pendiente.current;
+      else pendiente.current = destinoBoleto(pathname) ?? pendiente.current;
       if (pathname === '/login' || pathname === '/register') tuvoSesion.current = false;
     } else if (!isLoading && navigation?.key && pendiente.current) {
       const destino = pendiente.current;
@@ -57,8 +58,7 @@ function RootNavigator() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={!!session}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="evento/[id]" />
-        <Stack.Screen name="explore" />
+        <Stack.Screen name="boleto/[id]" />
       </Stack.Protected>
       <Stack.Protected guard={!session}>
         <Stack.Screen name="(auth)" />
@@ -75,7 +75,9 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <SessionProvider>
         <AnimatedSplashOverlay />
-        <RootNavigator />
+        <BiometricGate>
+          <RootNavigator />
+        </BiometricGate>
         <ToastRoot />
       </SessionProvider>
     </ThemeProvider>

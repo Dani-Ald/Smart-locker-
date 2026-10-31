@@ -5,6 +5,15 @@ function cleanVal(v) {
   return String(v).replace(/^["']|["']$/g, '').trim();
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
 /**
  * Crea el transporter de Nodemailer con configuración optimizada para producción/nube.
  */
@@ -94,23 +103,27 @@ async function testEmailConnection() {
  *
  * Si falla el envío real, lanza error en lugar de engañar al sistema con Ethereal.
  */
-async function sendVerificationCode(destinatario, nombre, codigo) {
+async function sendVerificationCode(destinatario, nombre, codigo, purpose = 'registro') {
+  const esAcceso = purpose === 'acceso';
+  const accion = esAcceso ? 'iniciar sesión' : 'verificar tu cuenta';
+  const nombreSeguro = escapeHtml(nombre);
+  const codigoSeguro = escapeHtml(codigo);
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
       <div style="text-align: center; margin-bottom: 20px;">
         <span style="font-size: 40px;">🎟️</span>
         <h2 style="color: #208AEF; margin: 8px 0 0 0; font-size: 24px;">Smart Ticket</h2>
       </div>
-      <h3 style="color: #1e293b; font-size: 18px; margin-bottom: 8px;">¡Hola, ${nombre}! 👋</h3>
+      <h3 style="color: #1e293b; font-size: 18px; margin-bottom: 8px;">Hola, ${nombreSeguro}</h3>
       <p style="color: #475569; font-size: 14px; line-height: 1.5; margin-bottom: 24px;">
-        Gracias por registrarte en Smart Ticket. Usa el siguiente código de 6 dígitos para verificar tu cuenta:
+        Usa el siguiente código de 6 dígitos para ${accion}:
       </p>
       <div style="text-align: center; margin: 24px 0; background-color: #f1f5f9; padding: 16px; border-radius: 12px; border: 1px solid #cbd5e1;">
-        <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #208AEF;">${codigo}</span>
+        <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #208AEF;">${codigoSeguro}</span>
       </div>
       <p style="color: #64748b; font-size: 12px; text-align: center; margin-top: 24px;">
         Este código expirará en 15 minutos.<br>
-        Si no solicitaste este registro, puedes ignorar este mensaje.
+        Si no solicitaste esta acción, puedes ignorar este mensaje.
       </p>
     </div>
   `;
@@ -205,13 +218,14 @@ async function sendVerificationCode(destinatario, nombre, codigo) {
     }
   }
 
-  // Log visible del código en consola para desarrollo/debug
-  console.log(`🔑 [Smart Ticket] CÓDIGO DE VERIFICACIÓN PARA ${destinatario}: [ ${codigo} ]`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[Smart Ticket] Código de desarrollo generado para ${destinatario}.`);
+  }
 
   // Lanzar error real si ningún proveedor pudo entregar
   const msg = lastError ? lastError.message : 'No hay proveedor SMTP ni Resend configurado';
   const error = new Error(msg);
-  error.codigoVerificacion = codigo;
+  if (process.env.NODE_ENV !== 'production') error.codigoVerificacion = codigo;
   throw error;
 }
 

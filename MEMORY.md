@@ -40,4 +40,12 @@ Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo qu
 ## Próximos pasos
 
 - (ver "Forma de trabajar" en AGENTS.md: seguridad → auth real → flujo de boletos → WEB/ → tests/lint → CI)
+
+## Decisiones de wallet (2026-10-31)
+
+- La app móvil es una wallet; compras y publicación abren `https://tick-0fpg.onrender.com/index.html`.
+- Persistencia offline con SQLite y separación por usuario.
+- QR firmado por la API con Ed25519; la clave privada solo vive en variables de entorno.
+- Autenticación principal por OTP, token opaco hasheado en servidor y SecureStore en el dispositivo.
+- Reseñas únicamente para boletos marcados como usados.
 - Navegación: commit de la rama, pruebas manuales Android/iOS, SecureStore real y fallback del hosting estático.
