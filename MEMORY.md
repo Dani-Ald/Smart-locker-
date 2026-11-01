@@ -1,51 +1,50 @@
 # MEMORY.md — Smart Locker
 
-Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aporte.
+Memoria breve del proyecto entre sesiones. No incluir secretos ni datos personales.
 
 ## Estado actual
 
-- API (Railway): `eventos` (lista/detalle/crear) y `usuarios` (registro, login, verificar/reenviar PIN) operativos.
-- Verificación por correo funcional vía Brevo HTTPS (commit `105ef7f`); remitente verificado en la cuenta del proyecto.
-- App Expo SDK 57: auth, catálogo, detalle, dashboard y `create-event` funcionales; APK publicado + OTA activos.
-- Navegación reorganizada en rama `feature/navegacion-sdk57`: Stack raíz + `(auth)` + `(tabs)`, detalle fuera de pestañas, URLs conservadas. Aún no publicada por OTA/APK.
-- No existe `WEB/` aunque el doc 03 la contempla.
-- Sin tests automatizados ni lint en API; App con `expo lint` y tsc estricto.
-- Última sesión: `DOCS/18-navegacion-expo-router-sdk57.md`.
+- `main` y `origin/main` están en `462ef5f`; solo este cierre documental queda sin commit.
+- API desplegada en Render desde `API/`; fuerza `dbName: 'test'`.
+- App Expo SDK 57 publicada como APK `preview`; OTA activo con `runtimeVersion: appVersion`.
+- Login usa correo y contraseña; PIN de seis dígitos solo verifica cuentas nuevas.
+- Sesiones opacas persistidas y hasheadas; middleware protege boletos y reseñas.
+- Wallet offline-first: `GET /api/v1/boletos/mios` → caché SQLite separada por usuario.
+- QR firmado con Ed25519; la clave privada solo debe existir en variables protegidas del servidor.
+- Compras y publicación abren la plataforma web; no hay pagos dentro de la app.
+- Panel temporal de diagnóstico visible debajo de la wallet.
+- Última sesión: [DOCS/20-wallet-render-y-diagnostico.md](DOCS/20-wallet-render-y-diagnostico.md).
 
-## Decisiones (y por qué)
+## Decisiones importantes
 
-- MongoDB Atlas con `dbName: 'test'` forzado en `API/src/db.js` — [POR CONFIRMAR].
-- Brevo REST API (HTTPS 443) en vez de SMTP — Railway bloquea 25/465/587 en Hobby/Trial (doc 17).
-- Auth propia sin JWT — [POR CONFIRMAR]; la API sigue sin validar el token.
-- Protección cliente con `Stack.Protected` y espera de lectura de sesión — una sola fuente de verdad, sin guards duplicados ni rutas protegidas tras logout.
-- Login sigue exigido para catálogo, detalle y publicación — política previa; falta autorización real en API.
-- Enlace a evento con ID validado se recupera una vez tras login, solo en memoria — evita destinos arbitrarios y estado persistente transitorio.
-- Web mantiene sesión en memoria; nativo usa SecureStore con errores recuperables — sin dependencias nuevas.
-- Atrás: historial primero; sin historial detalle/publicación → Eventos y registro → Login. PIN vuelve al formulario; borrador conservado entre tabs.
-- `/explore` redirige a Eventos y las acciones de Inicio muestran «Próximamente» — no existen pantallas destino.
-- ESLint y `eslint-config-expo` como devDependencies — lint reproducible (autorizado en sesión 18).
-- `codigoDev` en registro/reenvío — fallback de pruebas (doc 17). Rate limit 50/15 min (doc 14).
+- Render sustituyó al proveedor anterior porque el servicio dejó de estar disponible.
+- Timeout de auth de 65 s + precalentamiento; solo login tiene un reintento por ser idempotente.
+- La app conserva boletos offline; revocación/uso requieren sincronización posterior.
+- Eventos pasados y boletos cancelados no aparecen como próximo acceso.
+- Registro y navegación mantienen `Stack.Protected`, rutas tipadas y SecureStore.
+- Liquid Glass usa efecto nativo cuando está disponible y fallback translúcido en otras plataformas.
 
-## Aprendizajes y errores a evitar
+## Errores a evitar
 
-- No usar SMTP saliente en Railway Hobby/Trial: timeout silencioso.
-- Ethereal como fallback ocultaba errores reales — eliminado en `4e452b1`.
-- Variables de entorno con comillas/espacios rompen credenciales — usar `cleanVal()`.
-- `DOCS/17` contiene claves reales ya en git: pendiente rotar y retirarlas.
-- SDK 57: `usePreventRemove` viene de `expo-router/react-navigation` y entrega `data`, no `repeat` (eso es SDK 58).
-- Reglas react-hooks de `expo lint`: evitar `setState` directo en efectos; usar `useFocusEffect` con bandera de cancelación y `.set()` en Reanimated.
-- `npm install` falla con `EALLOWSCRIPTS` por `allow-scripts` global del entorno; usar `--package-lock-only --ignore-scripts`.
-- No escribir correos ni contactos reales en docs o memoria: solo nombres de variables.
+- Nunca imprimir variables de entorno ni cadenas de conexión en logs; `API/src/db.js` ya fue corregido.
+- Nunca compartir capturas con valores sensibles visibles.
+- No guardar claves, tokens, PIN, conexiones ni datos personales en Git, DOCS o memoria.
+- No reintentar automáticamente registro: podría duplicar una operación cuyo resultado se perdió.
+- No asumir que push implica deploy: comprobar commit `Live` y Auto-Deploy en Render.
+- Render gratuito puede tardar cerca de un minuto en despertar.
+- SDK 57: consultar documentación versionada antes de modificar Expo Router.
+- React Compiler/lint: evitar mutar shared values directamente en callbacks; usar `.set()`.
+
+## Seguridad pendiente
+
+- Rotar variables sensibles expuestas durante el diagnóstico y actualizar Render.
+- Regenerar QR de prueba tras rotar Ed25519.
+- Retirar secretos históricos de `DOCS/17` después de rotarlos.
 
 ## Próximos pasos
 
-- (ver "Forma de trabajar" en AGENTS.md: seguridad → auth real → flujo de boletos → WEB/ → tests/lint → CI)
-
-## Decisiones de wallet (2026-10-31)
-
-- La app móvil es una wallet; compras y publicación abren `https://tick-0fpg.onrender.com/index.html`.
-- Persistencia offline con SQLite y separación por usuario.
-- QR firmado por la API con Ed25519; la clave privada solo vive en variables de entorno.
-- El código de correo solo verifica cuentas nuevas. El inicio de sesión usa correo y contraseña, con token opaco hasheado en servidor y SecureStore en el dispositivo.
-- Reseñas únicamente para boletos marcados como usados.
-- Navegación: commit de la rama, pruebas manuales Android/iOS, SecureStore real y fallback del hosting estático.
+1. Rotar credenciales, actualizar Render y verificar un despliegue sin valores sensibles en logs.
+2. Instalar el APK de diagnóstico, sincronizar el boleto asignado y revisar el panel temporal.
+3. Validar modo avión, cambio de cuenta, QR y restauración de brillo en dispositivo real.
+4. Corregir la causa observada y retirar el diagnóstico temporal.
+5. Añadir más tests de API y CI básica para tests, lint y TypeScript.

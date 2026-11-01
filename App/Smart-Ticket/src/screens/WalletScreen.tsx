@@ -4,6 +4,7 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TicketCard } from '@/components/tickets/TicketCard';
+import { WalletBackdrop } from '@/components/ui/GlassSurface';
 import { FontSize, FontWeight, MaxContentWidth, Radius, Spacing, WalletPalette } from '@/constants/theme';
 import { WEB_EVENTS_URL } from '@/constants/web';
 import { useSessionContext } from '@/context/SessionContext';
@@ -22,7 +23,7 @@ type DiagnosticEntry = {
 export default function WalletScreen() {
   const colors = useWalletTheme();
   const { session } = useSessionContext();
-  const wallet = useWallet(session?.id ?? '', session?.token ?? '');
+  const wallet = useWallet();
   const now = useCurrentTime();
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const cancelled = wallet.tickets.filter((ticket) => ticket.estado === 'cancelado');
@@ -35,6 +36,8 @@ export default function WalletScreen() {
     .filter((ticket) => new Date(ticket.evento.fechaHora).getTime() >= now && ticket.estado !== 'cancelado')
     .sort((a, b) => new Date(a.evento.fechaHora).getTime() - new Date(b.evento.fechaHora).getTime());
   const [next, ...later] = future;
+  const synced = wallet.diagnostics.stage === 'sincronizado' && !wallet.error && !wallet.offline;
+  const syncLabel = wallet.error ? 'Sin actualizar' : wallet.offline ? 'Sin conexión' : synced ? 'Sincronizado' : 'Sincronizando…';
   const diagnostics = buildDiagnostics({
     hasSession: Boolean(session?.id && session?.token),
     wallet,
@@ -46,6 +49,7 @@ export default function WalletScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      <WalletBackdrop />
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -61,23 +65,27 @@ export default function WalletScreen() {
             <Text style={[styles.eyebrow, { color: colors.primary }]}>SMART TICKET WALLET</Text>
             <Text style={[styles.heading, { color: colors.text }]}>Mis boletos</Text>
           </View>
-          <View style={[styles.syncBadge, { backgroundColor: wallet.offline ? colors.warningSoft : colors.successSoft }]}>
+          <View accessibilityLiveRegion="polite" style={[styles.syncBadge, { backgroundColor: synced ? colors.successSoft : colors.surfaceMuted }]}>
             <SymbolView
               name={wallet.offline
                 ? { ios: 'wifi.slash', android: 'wifi_off', web: 'wifi_off' }
-                : { ios: 'checkmark.icloud', android: 'cloud_done', web: 'cloud_done' }}
+                : synced ? { ios: 'checkmark.icloud', android: 'cloud_done', web: 'cloud_done' }
+                  : { ios: 'arrow.clockwise', android: 'sync', web: 'sync' }}
               size={18}
-              tintColor={wallet.offline ? colors.warning : colors.success}
+              tintColor={synced ? colors.success : colors.textSecondary}
             />
-            <Text style={[styles.syncText, { color: wallet.offline ? colors.warning : colors.success }]}>
-              {wallet.offline ? 'Sin conexión' : 'Sincronizado'}
+            <Text style={[styles.syncText, { color: synced ? colors.success : colors.textSecondary }]}>
+              {syncLabel}
             </Text>
           </View>
         </View>
 
-        {wallet.error && wallet.tickets.length > 0 ? (
+        {wallet.error ? (
           <View style={[styles.notice, { backgroundColor: colors.warningSoft }]}>
             <Text style={[styles.noticeText, { color: colors.warning }]}>{wallet.error}</Text>
+            <Pressable accessibilityRole="button" disabled={wallet.refreshing} onPress={() => void wallet.refresh()} style={styles.retryButton}>
+              <Text style={[styles.retryButtonText, { color: colors.warning }]}>Reintentar</Text>
+            </Pressable>
           </View>
         ) : null}
 
@@ -101,9 +109,9 @@ export default function WalletScreen() {
                 tintColor={colors.primary}
               />
             </View>
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>Tu wallet está lista</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{wallet.error ? 'No pudimos cargar tus boletos' : wallet.offline ? 'Sin boletos guardados' : 'Tu próxima experiencia empieza aquí'}</Text>
             <Text style={[styles.emptyCopy, { color: colors.textSecondary }]}>
-              Cuando compres un boleto en Smart Ticket aparecerá aquí y podrás abrirlo incluso sin internet.
+              Tus próximos accesos aparecerán aquí. Abre la app con conexión después de comprar para guardarlos en este dispositivo.
             </Text>
             <Pressable
               accessibilityRole="button"
@@ -126,7 +134,7 @@ export default function WalletScreen() {
           </View>
         ) : null}
 
-        <View style={styles.diagnosticsSection}>
+        {__DEV__ ? <View style={styles.diagnosticsSection}>
           <Pressable
             accessibilityLabel={showDiagnostics ? 'Ocultar diagnóstico de boletos' : 'Mostrar diagnóstico de boletos'}
             accessibilityRole="button"
@@ -199,7 +207,7 @@ export default function WalletScreen() {
               </Pressable>
             </View>
           ) : null}
-        </View>
+        </View> : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -230,7 +238,7 @@ function buildDiagnostics({
   entries.push({ level: 'info', message: `Etapa actual: ${stageLabel(wallet.diagnostics.stage)}.` });
 
   if (wallet.offline) entries.push({ level: 'warning', message: 'La wallet está usando la caché local o detectó un fallo de red.' });
-  else entries.push({ level: 'success', message: 'La aplicación detecta conexión con el servicio.' });
+  else entries.push({ level: 'info', message: 'No se ha detectado desconexión; esto no confirma disponibilidad del servicio.' });
 
   if (wallet.error) entries.push({ level: 'error', message: `Último error: ${wallet.error}` });
   if (wallet.loading) entries.push({ level: 'info', message: 'La carga inicial todavía no termina.' });
@@ -297,7 +305,7 @@ function formatDiagnosticDate(value: string): string {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   content: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', padding: Spacing.four, paddingBottom: 120, gap: Spacing.four },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.two },
+  header: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.three },
   eyebrow: { fontSize: FontSize.sm, fontWeight: FontWeight.bold, letterSpacing: 1.1 },
   heading: { fontSize: FontSize['4xl'], fontWeight: FontWeight.heavy, letterSpacing: -0.7 },
   syncBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one, paddingHorizontal: Spacing.two, minHeight: 36, borderRadius: Radius.full },

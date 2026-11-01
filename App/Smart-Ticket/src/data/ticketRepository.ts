@@ -3,6 +3,15 @@ import * as SQLite from 'expo-sqlite';
 import type { WalletTicket, WalletTicketApi } from '@/types/ticket';
 
 const databasePromise = SQLite.openDatabaseAsync('smart-ticket-wallet.db');
+let initialized: Promise<SQLite.SQLiteDatabase> | undefined;
+let pending: Promise<unknown> = Promise.resolve();
+
+// Incluye lecturas para impedir que entren en una transacción ajena.
+function serialized<T>(operation: () => Promise<T>): Promise<T> {
+  const result = pending.then(operation);
+  pending = result.catch(() => undefined);
+  return result;
+}
 
 type TicketRow = {
   id: string;
@@ -17,7 +26,15 @@ type TicketRow = {
   synced_at: string;
 };
 
-async function database() {
+function database() {
+  initialized ??= initialize().catch((error: unknown) => {
+    initialized = undefined;
+    throw error;
+  });
+  return initialized;
+}
+
+async function initialize() {
   const db = await databasePromise;
   await db.execAsync(`
     PRAGMA journal_mode = WAL;
@@ -53,7 +70,7 @@ function fromRow(row: TicketRow): WalletTicket {
   };
 }
 
-export async function getLocalTickets(ownerId: string): Promise<WalletTicket[]> {
+async function readTickets(ownerId: string): Promise<WalletTicket[]> {
   const db = await database();
   const rows = await db.getAllAsync<TicketRow>(
     'SELECT * FROM wallet_tickets WHERE owner_id = ? ORDER BY updated_at DESC',
@@ -62,7 +79,7 @@ export async function getLocalTickets(ownerId: string): Promise<WalletTicket[]> 
   return rows.map(fromRow);
 }
 
-export async function getLocalTicket(id: string, ownerId: string): Promise<WalletTicket | null> {
+async function readTicket(id: string, ownerId: string): Promise<WalletTicket | null> {
   const db = await database();
   const row = await db.getFirstAsync<TicketRow>(
     'SELECT * FROM wallet_tickets WHERE id = ? AND owner_id = ?',
@@ -72,13 +89,15 @@ export async function getLocalTicket(id: string, ownerId: string): Promise<Walle
   return row ? fromRow(row) : null;
 }
 
-export async function replaceLocalTickets(
+async function replaceTickets(
   ownerId: string,
   tickets: WalletTicketApi[],
   syncedAt: string,
 ): Promise<void> {
   const db = await database();
-  await db.withTransactionAsync(async () => {
+  // BEGIN queda fuera del catch: si falla, no hay transacción que revertir.
+  await db.execAsync('BEGIN TRANSACTION');
+  try {
     const ids = tickets.map((ticket) => ticket.id);
     for (const ticket of tickets) {
       await db.runAsync(
@@ -119,5 +138,26 @@ export async function replaceLocalTickets(
         ...ids,
       );
     }
-  });
+    await db.execAsync('COMMIT');
+  } catch (error) {
+    try {
+      if (await db.isInTransactionAsync()) await db.execAsync('ROLLBACK');
+    } catch {
+      if (__DEV__) console.warn('[wallet] Falló la recuperación de la transacción local.');
+    }
+    // Conservar el primer error; un rollback secundario no debe reemplazarlo.
+    throw error;
+  }
+}
+
+export function getLocalTickets(ownerId: string) {
+  return serialized(() => readTickets(ownerId));
+}
+
+export function getLocalTicket(id: string, ownerId: string) {
+  return serialized(() => readTicket(id, ownerId));
+}
+
+export function replaceLocalTickets(ownerId: string, tickets: WalletTicketApi[], syncedAt: string) {
+  return serialized(() => replaceTickets(ownerId, tickets, syncedAt));
 }

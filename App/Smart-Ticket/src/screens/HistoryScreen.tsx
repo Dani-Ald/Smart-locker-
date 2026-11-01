@@ -2,6 +2,7 @@ import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { GlassSurface, WalletBackdrop } from '@/components/ui/GlassSurface';
 
 import { FontSize, FontWeight, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useSessionContext } from '@/context/SessionContext';
@@ -14,7 +15,7 @@ import type { WalletTicket } from '@/types/ticket';
 export default function HistoryScreen() {
   const colors = useWalletTheme();
   const { session } = useSessionContext();
-  const wallet = useWallet(session?.id ?? '', session?.token ?? '');
+  const wallet = useWallet();
   const now = useCurrentTime();
   const history = wallet.tickets
     .filter((ticket) => new Date(ticket.evento.fechaHora).getTime() < now || ['usado', 'cancelado'].includes(ticket.estado))
@@ -22,6 +23,7 @@ export default function HistoryScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      <WalletBackdrop />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View>
           <Text style={[styles.eyebrow, { color: colors.primary }]}>TUS EXPERIENCIAS</Text>
@@ -30,12 +32,15 @@ export default function HistoryScreen() {
         </View>
 
         {wallet.loading && history.length === 0 ? <ActivityIndicator color={colors.primary} /> : null}
-        {!wallet.loading && history.length === 0 ? (
-          <View style={[styles.empty, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        {wallet.error ? <Pressable accessibilityRole="button" onPress={() => void wallet.refresh()} style={styles.reviewToggle}>
+          <Text style={{ color: colors.warning }}>{wallet.error} Reintentar.</Text>
+        </Pressable> : null}
+        {!wallet.loading && !wallet.error && history.length === 0 ? (
+          <GlassSurface style={styles.empty}>
             <SymbolView name={{ ios: 'clock.arrow.circlepath', android: 'history', web: 'history' }} size={40} tintColor={colors.primary} />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>Aún no hay eventos pasados</Text>
             <Text style={[styles.emptyCopy, { color: colors.textSecondary }]}>Tus accesos concluidos aparecerán aquí automáticamente.</Text>
-          </View>
+          </GlassSurface>
         ) : null}
         {history.map((ticket) => <HistoryCard key={ticket.id} ticket={ticket} token={session?.token ?? ''} />)}
       </ScrollView>

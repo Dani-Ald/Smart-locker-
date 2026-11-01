@@ -12,6 +12,7 @@ import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { GlassSurface } from '@/components/ui/GlassSurface';
 
 export default function AppTabs() {
   return (
@@ -54,13 +55,9 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
 export function CustomTabList(props: TabListProps) {
   return (
     <View {...props} style={styles.tabListContainer}>
-      <ThemedView type="backgroundElement" style={styles.innerContainer}>
-        <ThemedText type="smallBold" style={styles.brandText}>
-          Smart Ticket
-        </ThemedText>
-
+      <GlassSurface style={styles.innerContainer}>
         {props.children}
-      </ThemedView>
+      </GlassSurface>
     </View>
   );
 }
@@ -68,6 +65,7 @@ export function CustomTabList(props: TabListProps) {
 const styles = StyleSheet.create({
   tabListContainer: {
     position: 'absolute',
+    bottom: 0,
     width: '100%',
     padding: Spacing.three,
     justifyContent: 'center',
@@ -76,12 +74,13 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.five,
+    paddingHorizontal: Spacing.two,
     borderRadius: Spacing.five,
     flexDirection: 'row',
     alignItems: 'center',
     flexGrow: 1,
-    gap: Spacing.two,
+    justifyContent: 'space-around',
+    flexWrap: 'wrap',
     maxWidth: MaxContentWidth,
   },
   brandText: {
@@ -91,8 +90,10 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   tabButtonView: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.three,
+    paddingHorizontal: Spacing.two,
     borderRadius: Spacing.three,
   },
   externalPressable: {

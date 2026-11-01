@@ -2,6 +2,7 @@ import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { GlassSurface, WalletBackdrop } from '@/components/ui/GlassSurface';
 
 import { FontSize, FontWeight, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useSessionContext } from '@/context/SessionContext';
@@ -60,12 +61,13 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      <WalletBackdrop />
       <ScrollView contentContainerStyle={styles.content}>
         <View>
           <Text style={[styles.eyebrow, { color: colors.primary }]}>CUENTA Y SEGURIDAD</Text>
           <Text style={[styles.heading, { color: colors.text }]}>Perfil</Text>
         </View>
-        <View style={[styles.profileCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <GlassSurface style={styles.profileCard}>
           <View style={[styles.avatar, { backgroundColor: colors.primarySoft }]}>
             <Text style={[styles.avatarText, { color: colors.primary }]}>{session?.nombre.trim().charAt(0).toUpperCase()}</Text>
           </View>
@@ -73,7 +75,7 @@ export default function ProfileScreen() {
             <Text style={[styles.name, { color: colors.text }]}>{session?.nombre}</Text>
             <Text style={[styles.email, { color: colors.textSecondary }]}>{session?.correo}</Text>
           </View>
-        </View>
+        </GlassSurface>
 
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Seguridad</Text>
         <View style={[styles.setting, { backgroundColor: colors.surface, borderColor: colors.border }]}>

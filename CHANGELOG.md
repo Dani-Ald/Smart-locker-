@@ -4,6 +4,8 @@
 
 ### Added
 
+- Superficies iridiscentes claro/oscuro, ticket con entrada única y movimiento reducido, y guía `DOCS/liquid-glass-design.md`.
+- Pruebas de concurrencia, atomicidad y estados compartidos de la wallet con datos sintéticos.
 - Wallet móvil offline con caché SQLite.
 - Inicio de sesión con correo y contraseña, verificación de cuenta por código y sesiones revocables.
 - QR local firmado con Ed25519 y brillo de presentación.
@@ -15,6 +17,9 @@
 
 ### Fixed
 
+- Inicialización única y cola de accesos SQLite; rollback condicionado y conservación del primer error.
+- Sincronización compartida entre Boletos e Historial; éxito solo después de persistir, mensajes seguros y diagnóstico solo en desarrollo.
+- Contraste temático de la barra de estado, navegación web inferior y títulos/lugares completos en boletos.
 - La API deja de imprimir la URI de MongoDB en los logs del despliegue.
 - Proporción del icono BOT en launchers Android/iOS y pantallas de autenticación.
 - Diseño unificado para inicio de sesión, registro y verificación de cuenta.

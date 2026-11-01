@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { ActivityIndicator, View, useColorScheme } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider, Stack, router, usePathname, useRootNavigationState, type Href } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { BiometricGate } from '@/components/security/BiometricGate';
@@ -10,6 +11,7 @@ import { ToastRoot } from '@/components/Toast';
 import { Brand, Colors } from '@/constants/theme';
 import { SessionProvider, useSessionContext } from '@/context/SessionContext';
 import { useOtaUpdate } from '@/hooks/use-ota-update';
+import { WalletProvider } from '@/hooks/use-wallet';
 import { destinoBoleto } from '@/navigation/routes';
 import { precalentarApi } from '@/services/apiWarmupService';
 
@@ -79,10 +81,13 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <SessionProvider>
         <AnimatedSplashOverlay />
         <BiometricGate>
-          <RootNavigator />
+          <WalletProvider>
+            <RootNavigator />
+          </WalletProvider>
         </BiometricGate>
         <ToastRoot />
       </SessionProvider>

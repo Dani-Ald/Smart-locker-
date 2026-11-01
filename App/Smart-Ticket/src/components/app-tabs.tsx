@@ -1,18 +1,18 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { useColorScheme } from 'react-native';
 
-import { Colors } from '@/constants/theme';
+import { WalletColors } from '@/constants/theme';
 
 export default function AppTabs() {
   const scheme = useColorScheme();
-  const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
+  const colors = WalletColors[scheme === 'dark' ? 'dark' : 'light'];
 
   return (
     <NativeTabs
       backgroundColor={colors.background}
-      indicatorColor={colors.backgroundElement}
-      iconColor={{ default: colors.textSecondary, selected: colors.text }}
-      labelStyle={{ selected: { color: colors.text } }}>
+      indicatorColor={colors.primarySoft}
+      iconColor={{ default: colors.textSecondary, selected: colors.primary }}
+      labelStyle={{ default: { color: colors.textSecondary }, selected: { color: colors.primary } }}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Boletos</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'ticket', selected: 'ticket.fill' }} md="confirmation_number" />

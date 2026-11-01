@@ -150,6 +150,12 @@ export type AuthPalette = typeof AuthColors.light | typeof AuthColors.dark;
 
 export const WalletColors = {
   light: {
+    glass: 'rgba(247, 251, 255, 0.93)',
+    glassEdge: '#FFFFFF',
+    glassLight: 'rgba(255, 255, 255, 0.8)',
+    cyan: 'rgba(111, 231, 236, 0.24)',
+    violet: 'rgba(165, 116, 248, 0.12)',
+    pink: 'rgba(243, 180, 214, 0.18)',
     background: '#F4F7FB',
     surface: '#FFFFFF',
     surfaceMuted: '#EAF0F7',
@@ -171,6 +177,12 @@ export const WalletColors = {
   },
   dark: {
     background: '#08111F',
+    glass: 'rgba(20, 40, 63, 0.94)',
+    glassEdge: '#3C536E',
+    glassLight: 'rgba(236, 246, 255, 0.09)',
+    cyan: 'rgba(111, 231, 236, 0.15)',
+    violet: 'rgba(165, 116, 248, 0.15)',
+    pink: 'rgba(243, 180, 214, 0.09)',
     surface: '#111D30',
     surfaceMuted: '#18263B',
     text: '#F8FAFC',
@@ -264,6 +276,7 @@ export const Spacing = {
 // ── Radios ───────────────────────────────────────────────────────────────────
 
 export const Radius = {
+  glass: 28,
   sm:   6,
   md:   10,
   lg:   14,
@@ -309,6 +322,7 @@ export const MaxContentWidth = 800;
 // ── Duración de animaciones ──────────────────────────────────────────────────
 
 export const Duration = {
+  ticket: 1000,
   fast:   150,
   normal: 250,
   slow:   400,
