@@ -6,25 +6,44 @@ type TicketsResponse = {
   sincronizadoAt: string;
 };
 
-function isTicketsResponse(value: unknown): value is TicketsResponse {
-  if (!value || typeof value !== 'object') return false;
+function getTicketsResponseIssue(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return 'la respuesta no es un objeto';
   const response = value as Record<string, unknown>;
-  return Array.isArray(response.data)
-    && response.data.every(isWalletTicket)
-    && typeof response.sincronizadoAt === 'string';
+  if (!Array.isArray(response.data)) return 'data no es una lista';
+  if (typeof response.sincronizadoAt !== 'string') return 'sincronizadoAt no es texto';
+
+  for (let index = 0; index < response.data.length; index += 1) {
+    const issue = getWalletTicketIssue(response.data[index]);
+    if (issue) return `data[${index}].${issue}`;
+  }
+
+  return null;
 }
 
-function isWalletTicket(value: unknown): value is WalletTicketApi {
-  if (!value || typeof value !== 'object') return false;
+function getWalletTicketIssue(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return 'boleto no es un objeto';
   const ticket = value as Record<string, unknown>;
+  for (const key of ['id', 'tipoBoleto', 'createdAt', 'updatedAt']) {
+    if (typeof ticket[key] !== 'string') return `${key} no es texto`;
+  }
+  if (!['apartado', 'pagado', 'usado', 'cancelado'].includes(String(ticket.estado))) {
+    return 'estado no es válido';
+  }
+  if (ticket.qrPayload !== null && typeof ticket.qrPayload !== 'string') {
+    return 'qrPayload no es texto ni null';
+  }
+  if (ticket.qrGeneradoAt !== null && typeof ticket.qrGeneradoAt !== 'string') {
+    return 'qrGeneradoAt no es texto ni null';
+  }
+
   const event = ticket.evento;
-  if (!event || typeof event !== 'object') return false;
+  if (!event || typeof event !== 'object') return 'evento no es un objeto';
   const eventRecord = event as Record<string, unknown>;
-  return ['id', 'tipoBoleto', 'createdAt', 'updatedAt'].every((key) => typeof ticket[key] === 'string')
-    && ['apartado', 'pagado', 'usado', 'cancelado'].includes(String(ticket.estado))
-    && (ticket.qrPayload === null || typeof ticket.qrPayload === 'string')
-    && (ticket.qrGeneradoAt === null || typeof ticket.qrGeneradoAt === 'string')
-    && ['id', 'nombre', 'fechaHora', 'ubicacion', 'municipio', 'imagen'].every((key) => typeof eventRecord[key] === 'string');
+  for (const key of ['id', 'nombre', 'fechaHora', 'ubicacion', 'municipio', 'imagen']) {
+    if (typeof eventRecord[key] !== 'string') return `evento.${key} no es texto`;
+  }
+
+  return null;
 }
 
 export async function fetchMyTickets(token: string): Promise<TicketsResponse> {
@@ -38,9 +57,10 @@ export async function fetchMyTickets(token: string): Promise<TicketsResponse> {
   }
 
   if (response.status === 401) throw new Error('Tu sesión expiró. Inicia sesión nuevamente.');
-  if (!response.ok) throw new Error('No fue posible sincronizar tus boletos.');
+  if (!response.ok) throw new Error(`No fue posible sincronizar tus boletos (HTTP ${response.status}).`);
 
   const body: unknown = await response.json();
-  if (!isTicketsResponse(body)) throw new Error('El servidor devolvió boletos con formato inválido.');
-  return body;
+  const issue = getTicketsResponseIssue(body);
+  if (issue) throw new Error(`El servidor devolvió un formato inválido: ${issue}.`);
+  return body as TicketsResponse;
 }
