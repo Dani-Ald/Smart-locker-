@@ -4,7 +4,7 @@ import Animated, { Keyframe, Easing } from 'react-native-reanimated';
 
 import classes from './animated-icon.module.css';
 const DURATION = 300;
-const APP_ICON = require('@/assets/images/BOT.png');
+const APP_ICON = require('@/assets/images/BOT-icon.png');
 
 export function AnimatedSplashOverlay() {
   return null;

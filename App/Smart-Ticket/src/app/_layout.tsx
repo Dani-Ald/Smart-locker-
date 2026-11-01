@@ -11,6 +11,7 @@ import { Brand, Colors } from '@/constants/theme';
 import { SessionProvider, useSessionContext } from '@/context/SessionContext';
 import { useOtaUpdate } from '@/hooks/use-ota-update';
 import { destinoBoleto } from '@/navigation/routes';
+import { precalentarApi } from '@/services/apiWarmupService';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -71,6 +72,11 @@ function RootNavigator() {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   useOtaUpdate();
+
+  useEffect(() => {
+    void precalentarApi();
+  }, []);
+
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <SessionProvider>

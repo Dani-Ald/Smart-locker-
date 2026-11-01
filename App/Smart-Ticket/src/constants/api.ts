@@ -1,2 +1,2 @@
-// URL de producción — API desplegada en Railway
-export const API_BASE_URL = 'https://smart-locker-production-ecda.up.railway.app/api/v1';
+// URL de producción — API desplegada en Render
+export const API_BASE_URL = 'https://smart-locker-o0gl.onrender.com/api/v1';

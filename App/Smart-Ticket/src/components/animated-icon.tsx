@@ -7,7 +7,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
 const DURATION = 800;
-const APP_ICON = require('@/assets/images/BOT.png');
+const APP_ICON = require('@/assets/images/BOT-icon.png');
 
 export function AnimatedSplashOverlay() {
   const [animate, setAnimate] = useState(false);

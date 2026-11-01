@@ -62,6 +62,9 @@ export class AuthError extends Error {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const AUTH_TIMEOUT_MS = 65_000;
+const LOGIN_RETRY_DELAY_MS = 1_000;
+
 function mensajeDeError(status: number, contexto: 'login' | 'register'): string {
   if (contexto === 'login') {
     if (status === 400) return 'Completa todos los campos.';
@@ -73,7 +76,64 @@ function mensajeDeError(status: number, contexto: 'login' | 'register'): string 
     if (status === 409) return 'Ese correo ya está registrado.';
     if (status === 429) return 'Demasiados intentos. Inténtalo en unos minutos.';
   }
+  if (status === 404 || status === 502 || status === 503 || status === 504) {
+    return 'El servicio de Smart Ticket no está disponible. Inténtalo más tarde.';
+  }
+  if (status >= 500) return 'El servidor no pudo completar la solicitud. Inténtalo más tarde.';
   return 'Error inesperado del servidor.';
+}
+
+async function obtenerMensajeError(
+  respuesta: Response,
+  contexto: 'login' | 'register',
+): Promise<string> {
+  if ([404, 502, 503, 504].includes(respuesta.status)) {
+    return mensajeDeError(respuesta.status, contexto);
+  }
+
+  const data: unknown = await respuesta.json().catch(() => null);
+  if (data && typeof data === 'object') {
+    const error = (data as Record<string, unknown>).error;
+    if (typeof error === 'string' && error.trim()) return error;
+  }
+  return mensajeDeError(respuesta.status, contexto);
+}
+
+async function fetchAuth(
+  url: string,
+  body: unknown,
+  options: { retryOnNetworkError?: boolean } = {},
+): Promise<Response> {
+  const attempts = options.retryOnNetworkError ? 2 : 1;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), AUTH_TIMEOUT_MS);
+
+    try {
+      return await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('El servicio está tardando más de lo normal. Inténtalo nuevamente.');
+      }
+
+      const shouldRetry = attempt + 1 < attempts;
+      if (!shouldRetry) {
+        throw new Error('No fue posible conectar con el servidor. Revisa tu conexión e inténtalo nuevamente.');
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, LOGIN_RETRY_DELAY_MS));
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  throw new Error('No fue posible conectar con el servidor.');
 }
 
 // ─── Servicios ────────────────────────────────────────────────────────────────
@@ -85,24 +145,12 @@ function mensajeDeError(status: number, contexto: 'login' | 'register'): string 
  * @throws Error genérico si no hay conexión.
  */
 export async function login(payload: LoginPayload): Promise<SessionData> {
-  let respuesta: Response;
-
-  try {
-    respuesta = await fetch(`${API_BASE_URL}/usuarios/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    throw new Error('No fue posible conectar con el servidor.');
-  }
+  const respuesta = await fetchAuth(`${API_BASE_URL}/usuarios/login`, payload, {
+    retryOnNetworkError: true,
+  });
 
   if (!respuesta.ok) {
-    const errorData = await respuesta.json().catch(() => ({}));
-    throw new AuthError(
-      respuesta.status,
-      errorData.error || mensajeDeError(respuesta.status, 'login'),
-    );
+    throw new AuthError(respuesta.status, await obtenerMensajeError(respuesta, 'login'));
   }
 
   const data = await respuesta.json();
@@ -122,20 +170,10 @@ export async function login(payload: LoginPayload): Promise<SessionData> {
  * @throws Error genérico si no hay conexión.
  */
 export async function register(payload: RegisterPayload): Promise<RegisterResult> {
-  let respuesta: Response;
-
-  try {
-    respuesta = await fetch(`${API_BASE_URL}/usuarios/registro`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    throw new Error('No fue posible conectar con el servidor.');
-  }
+  const respuesta = await fetchAuth(`${API_BASE_URL}/usuarios/registro`, payload);
 
   if (!respuesta.ok) {
-    throw new AuthError(respuesta.status, mensajeDeError(respuesta.status, 'register'));
+    throw new AuthError(respuesta.status, await obtenerMensajeError(respuesta, 'register'));
   }
 
   const data = await respuesta.json();

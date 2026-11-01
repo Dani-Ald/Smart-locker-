@@ -31,6 +31,15 @@ export function LockIcon({ color, size = 20 }: IconProps) {
   );
 }
 
+export function UserIcon({ color, size = 20 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" accessibilityElementsHidden>
+      <Circle cx="12" cy="8" r="4" stroke={color} {...strokeProps} />
+      <Path d="M4.5 21a7.5 7.5 0 0 1 15 0" stroke={color} {...strokeProps} />
+    </Svg>
+  );
+}
+
 export function EyeIcon({ color, size = 20 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" accessibilityElementsHidden>
