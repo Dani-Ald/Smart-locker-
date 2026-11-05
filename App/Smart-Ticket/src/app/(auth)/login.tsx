@@ -2,7 +2,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { ReactNode, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -51,6 +50,7 @@ export default function LoginScreen() {
   const [focusedField, setFocusedField] = useState<'correo' | 'password' | null>(null);
   const [buttonPressed, setButtonPressed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [requestController, setRequestController] = useState<AbortController | null>(null);
   const [showSlowConnectionMessage, setShowSlowConnectionMessage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const reduceMotion = useReducedMotion();
@@ -87,8 +87,10 @@ export default function LoginScreen() {
 
     setShowSlowConnectionMessage(false);
     setLoading(true);
+    const controller = new AbortController();
+    setRequestController(controller);
     try {
-      const session = await login({ correo: correoNormalizado, password });
+      const session = await login({ correo: correoNormalizado, password }, controller.signal);
       await saveSession(session);
     } catch (err) {
       if (err instanceof AuthError || err instanceof Error) setError(err.message);
@@ -96,7 +98,35 @@ export default function LoginScreen() {
     } finally {
       setShowSlowConnectionMessage(false);
       setLoading(false);
+      setRequestController(null);
     }
+  }
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.loadingScreen, { backgroundColor: colors.background }]}>
+        <LinearGradient
+          colors={[colors.backgroundTop, colors.background, colors.backgroundBottom]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <TicketLoader />
+        <Text style={[styles.loginLoadingTitle, { color: colors.text }]}>Preparando tu acceso</Text>
+        <Text style={[styles.loginLoadingCopy, { color: colors.textSecondary }]}>
+          {showSlowConnectionMessage
+            ? 'La conexión está tardando. Puedes esperar un poco más o cancelar e intentarlo de nuevo.'
+            : 'Estamos conectando con Smart Ticket…'}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Cancelar inicio de sesión"
+          onPress={() => requestController?.abort()}
+          style={({ pressed }) => [styles.cancelLogin, pressed && styles.pressed]}>
+          <Text style={[styles.cancelLoginText, { color: colors.primary }]}>Cancelar</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -212,7 +242,7 @@ export default function LoginScreen() {
                     onPressOut={() => setButtonPressed(false)}
                     style={({ pressed }) => pressed && styles.pressed}>
                     <LinearGradient
-                      colors={['#0CE39A', '#69007F', '#FC0987']}
+                      colors={[colors.primary, colors.primaryEnd]}
                       end={{ x: 1, y: 0.5 }}
                       start={{ x: 0, y: 0.5 }}
                       style={styles.cta}>
@@ -223,25 +253,13 @@ export default function LoginScreen() {
                         start={{ x: 0, y: 0 }}
                         style={styles.ctaSheen}
                       />
-                      {loading ? <View style={styles.loadingContent}>
-                        <ActivityIndicator color={colors.onPrimary} size="small" />
-                        <Text style={styles.ctaText}>
-                          {showSlowConnectionMessage ? 'Preparando servicio…' : 'Iniciando sesión…'}
-                        </Text>
-                      </View> : <>
-                        <Text style={styles.ctaText}>Iniciar sesión</Text>
-                        <View style={styles.arrowCircle}>
-                          <ArrowRightIcon color={colors.onPrimary} size={18} />
-                        </View>
-                      </>}
+                      <Text style={styles.ctaText}>Iniciar sesión</Text>
+                      <View style={styles.arrowCircle}>
+                        <ArrowRightIcon color={colors.onPrimary} size={18} />
+                      </View>
                     </LinearGradient>
                   </Pressable>
                 </Animated.View>
-                {showSlowConnectionMessage ? (
-                  <Text accessibilityLiveRegion="polite" style={styles.slowConnectionText}>
-                    La primera conexión puede tardar hasta un minuto.
-                  </Text>
-                ) : null}
                 </View>
               </LiquidGlassPanel>
 
@@ -258,15 +276,6 @@ export default function LoginScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-      {loading ? (
-        <View accessibilityLiveRegion="polite" style={styles.loginLoadingOverlay}>
-          <TicketLoader />
-          <Text style={styles.loginLoadingTitle}>Preparando tu acceso</Text>
-          <Text style={styles.loginLoadingCopy}>
-            {showSlowConnectionMessage ? 'La conexión está tardando un poco. Seguimos intentando…' : 'Estamos conectando con Smart Ticket…'}
-          </Text>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -344,14 +353,14 @@ function createStyles(colors: AuthPalette) {
     cta: { minHeight: 58, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderRadius: Radius.full },
     ctaSheen: { position: 'absolute', top: 0, left: 0, right: 0, height: '58%' },
     ctaText: { color: colors.onPrimary, fontSize: FontSize.md, fontWeight: FontWeight.bold },
-    loadingContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.two },
-    slowConnectionText: { marginTop: -Spacing.one, color: colors.textSecondary, fontSize: FontSize.sm, lineHeight: 18, textAlign: 'center' },
     arrowCircle: { position: 'absolute', right: Spacing.two, width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: Radius.full, backgroundColor: colors.primarySoft },
     pressed: { opacity: 0.82 },
     disabled: { opacity: 0.65 },
-    loginLoadingOverlay: { ...StyleSheet.absoluteFill, zIndex: 20, alignItems: 'center', justifyContent: 'center', gap: Spacing.three, paddingHorizontal: Spacing.six, backgroundColor: colors.background === '#09111F' ? 'rgba(5, 14, 29, 0.96)' : 'rgba(18, 33, 51, 0.90)' },
-    loginLoadingTitle: { marginTop: Spacing.two, color: '#FFFFFF', fontSize: FontSize.xl, fontWeight: FontWeight.bold, textAlign: 'center' },
-    loginLoadingCopy: { maxWidth: 300, color: 'rgba(255,255,255,0.76)', fontSize: FontSize.base, lineHeight: 23, textAlign: 'center' },
+    loadingScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.three, paddingHorizontal: Spacing.five },
+    loginLoadingTitle: { marginTop: Spacing.two, fontSize: FontSize.xl, fontWeight: FontWeight.bold, textAlign: 'center' },
+    loginLoadingCopy: { maxWidth: 320, fontSize: FontSize.base, lineHeight: 23, textAlign: 'center' },
+    cancelLogin: { minWidth: 120, minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.two, paddingHorizontal: Spacing.four, borderRadius: Radius.full, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassSurface },
+    cancelLoginText: { fontSize: FontSize.base, fontWeight: FontWeight.bold },
     textButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.one },
     link: { color: colors.primary, fontSize: FontSize.base, fontWeight: FontWeight.bold },
     footerGlass: { minHeight: 48, alignSelf: 'center', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: Spacing.one, paddingHorizontal: Spacing.three, borderRadius: Radius.full, borderWidth: StyleSheet.hairlineWidth, backgroundColor: colors.glassSurface },

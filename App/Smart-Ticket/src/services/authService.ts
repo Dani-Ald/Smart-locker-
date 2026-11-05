@@ -102,13 +102,16 @@ async function obtenerMensajeError(
 async function fetchAuth(
   url: string,
   body: unknown,
-  options: { retryOnNetworkError?: boolean } = {},
+  options: { retryOnNetworkError?: boolean; signal?: AbortSignal } = {},
 ): Promise<Response> {
   const attempts = options.retryOnNetworkError ? 2 : 1;
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), AUTH_TIMEOUT_MS);
+    const abortFromCaller = () => controller.abort();
+    if (options.signal?.aborted) controller.abort();
+    else options.signal?.addEventListener('abort', abortFromCaller, { once: true });
 
     try {
       return await fetch(url, {
@@ -119,6 +122,7 @@ async function fetchAuth(
       });
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
+        if (options.signal?.aborted) throw new Error('Inicio de sesión cancelado.');
         throw new Error('El servicio está tardando más de lo normal. Inténtalo nuevamente.');
       }
 
@@ -130,6 +134,7 @@ async function fetchAuth(
       await new Promise((resolve) => setTimeout(resolve, LOGIN_RETRY_DELAY_MS));
     } finally {
       clearTimeout(timeout);
+      options.signal?.removeEventListener('abort', abortFromCaller);
     }
   }
 
@@ -144,23 +149,59 @@ async function fetchAuth(
  * @throws AuthError con el código HTTP y mensaje descriptivo.
  * @throws Error genérico si no hay conexión.
  */
-export async function login(payload: LoginPayload): Promise<SessionData> {
-  const respuesta = await fetchAuth(`${API_BASE_URL}/usuarios/login`, payload, {
-    retryOnNetworkError: true,
+export async function login(payload: LoginPayload, signal?: AbortSignal): Promise<SessionData> {
+  const controller = new AbortController();
+  const abortFromCaller = () => controller.abort();
+  if (signal?.aborted) controller.abort();
+  else signal?.addEventListener('abort', abortFromCaller, { once: true });
+
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  let timeoutExpired = false;
+  const operation = (async () => {
+    const respuesta = await fetchAuth(`${API_BASE_URL}/usuarios/login`, payload, {
+      retryOnNetworkError: true,
+      signal: controller.signal,
+    });
+
+    if (!respuesta.ok) {
+      throw new AuthError(respuesta.status, await obtenerMensajeError(respuesta, 'login'));
+    }
+
+    const data = await respuesta.json();
+    return {
+      token: data.token,
+      nombre: data.nombre ?? data.user?.nombre ?? '',
+      correo: data.correo ?? data.user?.correo ?? payload.correo,
+      id: data._id ?? data.user?._id ?? data.id ?? '',
+    };
+  })();
+
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      timeoutExpired = true;
+      controller.abort();
+      reject(new Error('El servicio está tardando más de lo normal. Inténtalo nuevamente.'));
+    }, AUTH_TIMEOUT_MS);
+  });
+  let rejectWhenAborted: (() => void) | undefined;
+  const cancelled = new Promise<never>((_, reject) => {
+    rejectWhenAborted = () => reject(new Error('Inicio de sesión cancelado.'));
+    if (controller.signal.aborted) rejectWhenAborted();
+    else controller.signal.addEventListener('abort', rejectWhenAborted, { once: true });
   });
 
-  if (!respuesta.ok) {
-    throw new AuthError(respuesta.status, await obtenerMensajeError(respuesta, 'login'));
+  try {
+    return await Promise.race([operation, timeout, cancelled]);
+  } catch (error) {
+    if (timeoutExpired) {
+      throw new Error('El servicio está tardando más de lo normal. Inténtalo nuevamente.');
+    }
+    throw error;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+    if (rejectWhenAborted) controller.signal.removeEventListener('abort', rejectWhenAborted);
+    signal?.removeEventListener('abort', abortFromCaller);
   }
-
-  const data = await respuesta.json();
-
-  return {
-    token: data.token,
-    nombre: data.nombre ?? data.user?.nombre ?? '',
-    correo: data.correo ?? data.user?.correo ?? payload.correo,
-    id: data._id ?? data.user?._id ?? data.id ?? '',
-  };
 }
 
 /**

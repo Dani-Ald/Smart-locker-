@@ -43,7 +43,7 @@ export default function ExploreRedirectScreen() {
                   accessibilityHint="Abre la cartelera de eventos en la web"
                   onPress={() => void openWebPage(WEB_EVENTS_URL)}
                   style={({ pressed }) => [styles.primaryWrap, pressed && styles.pressed]}>
-                  <LinearGradient colors={['#0CE39A', '#69007F', '#FC0987']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.primary}>
+                  <LinearGradient colors={[colors.primary, colors.primaryEnd]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.primary}>
                     <Text style={styles.primaryText}>Explorar eventos</Text>
                     <SymbolView name={{ ios: 'arrow.up.right', android: 'open_in_new', web: 'open_in_new' }} size={19} tintColor="#FFFFFF" />
                   </LinearGradient>
