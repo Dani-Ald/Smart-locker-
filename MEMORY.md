@@ -1,50 +1,42 @@
 # MEMORY.md — Smart Locker
 
-Memoria breve del proyecto entre sesiones. No incluir secretos ni datos personales.
+Memoria breve entre sesiones. No incluir secretos ni datos personales.
 
 ## Estado actual
 
-- `main` y `origin/main` están en `462ef5f`; solo este cierre documental queda sin commit.
-- API desplegada en Render desde `API/`; fuerza `dbName: 'test'`.
-- App Expo SDK 57 publicada como APK `preview`; OTA activo con `runtimeVersion: appVersion`.
-- Login usa correo y contraseña; PIN de seis dígitos solo verifica cuentas nuevas.
-- Sesiones opacas persistidas y hasheadas; middleware protege boletos y reseñas.
-- Wallet offline-first: `GET /api/v1/boletos/mios` → caché SQLite separada por usuario.
-- QR firmado con Ed25519; la clave privada solo debe existir en variables protegidas del servidor.
-- Compras y publicación abren la plataforma web; no hay pagos dentro de la app.
-- Panel temporal de diagnóstico visible debajo de la wallet.
-- Última sesión: [DOCS/20-wallet-render-y-diagnostico.md](DOCS/20-wallet-render-y-diagnostico.md).
+- Rama `feature/premium-liquid-glass` está en origin; `main` sigue pendiente de merge tras validación.
+- APK Android `preview` anterior está documentado en DOCS/22.
+- Build Android `preview` del boleto holográfico iniciado en esta sesión: EAS indicó `IN_QUEUE`; no hay enlace de APK todavía.
+- App Expo SDK 57; OTA activo con `runtimeVersion: appVersion`.
+- API en Render; `API/src/db.js` fuerza `dbName: 'test'`.
+- Wallet offline-first con SQLite serializado; sincronización single-flight entre Boletos e Historial.
+- Última sesión: [DOCS/24-build-preview-boleto-holografico.md](DOCS/24-build-preview-boleto-holografico.md).
 
 ## Decisiones importantes
 
-- Render sustituyó al proveedor anterior porque el servicio dejó de estar disponible.
-- Timeout de auth de 65 s + precalentamiento; solo login tiene un reintento por ser idempotente.
-- La app conserva boletos offline; revocación/uso requieren sincronización posterior.
-- Eventos pasados y boletos cancelados no aparecen como próximo acceso.
-- Registro y navegación mantienen `Stack.Protected`, rutas tipadas y SecureStore.
-- Liquid Glass usa efecto nativo cuando está disponible y fallback translúcido en otras plataformas.
+- Perfil EAS `preview` para APK interno y revisión; no se pidió publicación de tienda ni push.
+- Boleto holográfico usa SVG; se omite `#bump` en nativo por falta de soporte de ruido/iluminación.
+- Enfoque Liquid Glass: efecto nativo iOS, fallback translúcido en Android y `backdropFilter` en web.
+- Estado de sincronización solo se declara tras persistir y releer la caché.
+- Timeout de auth de 65 s; solo login reintenta por ser idempotente.
 
 ## Errores a evitar
 
-- Nunca imprimir variables de entorno ni cadenas de conexión en logs; `API/src/db.js` ya fue corregido.
-- Nunca compartir capturas con valores sensibles visibles.
-- No guardar claves, tokens, PIN, conexiones ni datos personales en Git, DOCS o memoria.
-- No reintentar automáticamente registro: podría duplicar una operación cuyo resultado se perdió.
-- No asumir que push implica deploy: comprobar commit `Live` y Auto-Deploy en Render.
-- Render gratuito puede tardar cerca de un minuto en despertar.
-- SDK 57: consultar documentación versionada antes de modificar Expo Router.
-- React Compiler/lint: evitar mutar shared values directamente en callbacks; usar `.set()`.
+- No imprimir variables de entorno ni cadenas de conexión en logs; no guardar claves, tokens, PIN ni datos personales en Git/DOCS/memoria.
+- No usar `withTransactionAsync` en la wallet: sus transacciones pueden solaparse; usar la cola SQLite serializada existente.
+- No reintentar automáticamente registro ni asumir que push implica deploy.
+- SDK 57: leer documentación versionada antes de modificar Expo; no mutar shared values durante render/callbacks (usar APIs compatibles con React Compiler).
+- No ampliar assets del icono sin medir el área segura de la máscara.
 
 ## Seguridad pendiente
 
-- Rotar variables sensibles expuestas durante el diagnóstico y actualizar Render.
-- Regenerar QR de prueba tras rotar Ed25519.
-- Retirar secretos históricos de `DOCS/17` después de rotarlos.
+- Rotar variables sensibles expuestas históricamente y actualizar Render.
+- Regenerar QR de prueba después de la rotación y retirar valores sensibles de DOCS/17.
 
 ## Próximos pasos
 
-1. Rotar credenciales, actualizar Render y verificar un despliegue sin valores sensibles en logs.
-2. Instalar el APK de diagnóstico, sincronizar el boleto asignado y revisar el panel temporal.
-3. Validar modo avión, cambio de cuenta, QR y restauración de brillo en dispositivo real.
-4. Corregir la causa observada y retirar el diagnóstico temporal.
-5. Añadir más tests de API y CI básica para tests, lint y TypeScript.
+1. Consultar el build EAS `preview` pendiente; compartir `artifacts.buildUrl` si finaliza correctamente o revisar logs si falla.
+2. Instalar el APK y validar visualmente wallet, ticket holográfico, QR escaneable, brillo, temas y movimiento reducido.
+3. Tras validación: merge de `feature/premium-liquid-glass` a `main` y push, solo con autorización.
+4. Rotar credenciales y verificar el despliegue limpio de logs.
+5. Añadir tests mínimos de API y CI para lint, TypeScript y pruebas existentes.

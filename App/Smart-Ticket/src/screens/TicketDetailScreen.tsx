@@ -6,6 +6,7 @@ import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, Vi
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { HoloTicket } from '@/components/tickets/HoloTicket';
 import { FontSize, FontWeight, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { SUPPORT_WHATSAPP_NUMBER } from '@/constants/web';
 import { useSessionContext } from '@/context/SessionContext';
@@ -95,46 +96,39 @@ export default function TicketDetailScreen() {
           <View style={styles.headerSpacer} />
         </View>
 
-        <View style={[styles.ticket, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: colors.shadow }]}>
-          <View style={styles.ticketHeader}>
-            <Text style={[styles.eventName, { color: colors.text }]}>{ticket.evento.nombre}</Text>
-            <Text style={[styles.ticketType, { color: colors.primary }]}>{ticket.tipoBoleto}</Text>
-          </View>
-
-          <View style={[styles.dashed, { borderColor: colors.border }]} />
-
-          {canShowQr && ticket.qrPayload ? (
-            <View style={styles.qrSection}>
-              <View style={[styles.qrFrame, { backgroundColor: colors.qrBackground }]}>
-                <QRCode
-                  value={ticket.qrPayload}
-                  size={230}
-                  color={colors.qrForeground}
-                  backgroundColor={colors.qrBackground}
-                  ecl="M"
-                  quietZone={8}
-                />
-              </View>
-              <Text style={[styles.qrHint, { color: colors.textSecondary }]}>Presenta este código en el acceso</Text>
-              <View style={[styles.offlineBadge, { backgroundColor: colors.successSoft }]}>
-                <SymbolView name={{ ios: 'checkmark.shield', android: 'verified_user', web: 'verified_user' }} size={18} tintColor={colors.success} />
-                <Text style={[styles.offlineText, { color: colors.success }]}>Disponible sin conexión</Text>
-              </View>
-            </View>
-          ) : (
-            <View style={[styles.inactiveQr, { backgroundColor: colors.surfaceMuted }]}>
-              <SymbolView name={{ ios: 'qrcode', android: 'qr_code_2', web: 'qr_code_2' }} size={64} tintColor={colors.textSecondary} />
-              <Text style={[styles.inactiveTitle, { color: colors.text }]}>Código QR inactivo</Text>
-              <Text style={[styles.inactiveCopy, { color: colors.textSecondary }]}>El evento terminó o este boleto ya no está activo.</Text>
-            </View>
-          )}
-
-          <View style={[styles.dashed, { borderColor: colors.border }]} />
-          <View style={styles.details}>
-            <Detail label="Fecha" value={new Intl.DateTimeFormat('es-MX', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(ticket.evento.fechaHora))} colors={colors} />
-            <Detail label="Lugar" value={`${ticket.evento.ubicacion || ticket.evento.municipio}`} colors={colors} />
-            <Detail label="Folio" value={ticket.id.toUpperCase()} colors={colors} />
-          </View>
+        <View style={styles.detailTicketWrap}>
+          <HoloTicket
+            ticket={ticket}
+            variant="detail"
+            now={now}
+            qrComponent={
+              canShowQr && ticket.qrPayload ? (
+                <View style={styles.qrSection}>
+                  <View style={[styles.qrFrame, { backgroundColor: colors.qrBackground }]}>
+                    <QRCode
+                      value={ticket.qrPayload}
+                      size={185}
+                      color={colors.qrForeground}
+                      backgroundColor={colors.qrBackground}
+                      ecl="M"
+                      quietZone={6}
+                    />
+                  </View>
+                  <Text style={[styles.qrHint, { color: '#334155' }]}>Presenta este código en el acceso</Text>
+                  <View style={[styles.offlineBadge, { backgroundColor: '#dcfce7' }]}>
+                    <SymbolView name={{ ios: 'checkmark.shield', android: 'verified_user', web: 'verified_user' }} size={16} tintColor="#15803d" />
+                    <Text style={[styles.offlineText, { color: '#15803d' }]}>Disponible sin conexión</Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={[styles.inactiveQr, { backgroundColor: 'rgba(255, 255, 255, 0.65)' }]}>
+                  <SymbolView name={{ ios: 'qrcode', android: 'qr_code_2', web: 'qr_code_2' }} size={56} tintColor="#64748b" />
+                  <Text style={[styles.inactiveTitle, { color: '#0f172a' }]}>Código QR inactivo</Text>
+                  <Text style={[styles.inactiveCopy, { color: '#475569' }]}>El evento terminó o este boleto ya no está activo.</Text>
+                </View>
+              )
+            }
+          />
         </View>
 
         {brightnessError ? <Text style={[styles.warning, { color: colors.warning }]}>{brightnessError}</Text> : null}
@@ -162,23 +156,16 @@ export default function TicketDetailScreen() {
   );
 }
 
-function Detail({ label, value, colors }: { label: string; value: string; colors: ReturnType<typeof useWalletTheme> }) {
-  return <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{label}</Text><Text selectable style={[styles.detailValue, { color: colors.text }]}>{value}</Text></View>;
-}
-
 const styles = StyleSheet.create({
   safe: { flex: 1 }, center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.three, padding: Spacing.four },
   content: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', padding: Spacing.four, paddingBottom: Spacing.six, gap: Spacing.three },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   iconButton: { width: 44, height: 44, borderRadius: Radius.full, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold }, headerSpacer: { width: 44 },
-  ticket: { overflow: 'hidden', borderRadius: Radius.xl + 8, borderWidth: StyleSheet.hairlineWidth, shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.1, shadowRadius: 24, elevation: 5 },
-  ticketHeader: { padding: Spacing.four, gap: Spacing.one }, eventName: { fontSize: FontSize['2xl'], fontWeight: FontWeight.heavy }, ticketType: { fontSize: FontSize.base, fontWeight: FontWeight.bold },
-  dashed: { borderTopWidth: 1, borderStyle: 'dashed', marginHorizontal: Spacing.three },
+  detailTicketWrap: { alignItems: 'center', marginVertical: Spacing.two },
   qrSection: { alignItems: 'center', padding: Spacing.four, gap: Spacing.two }, qrFrame: { padding: Spacing.two, borderRadius: Radius.lg },
   qrHint: { fontSize: FontSize.sm }, offlineBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one, borderRadius: Radius.full, paddingVertical: Spacing.one, paddingHorizontal: Spacing.two }, offlineText: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold },
   inactiveQr: { alignItems: 'center', margin: Spacing.four, padding: Spacing.four, gap: Spacing.two, borderRadius: Radius.xl }, inactiveTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold }, inactiveCopy: { textAlign: 'center', fontSize: FontSize.base },
-  details: { padding: Spacing.four, gap: Spacing.three }, detailRow: { gap: Spacing.one }, detailLabel: { fontSize: FontSize.sm, fontWeight: FontWeight.medium }, detailValue: { fontSize: FontSize.base, fontWeight: FontWeight.semibold },
   actionsRow: { flexDirection: 'row', gap: Spacing.two }, secondaryAction: { minHeight: 56, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.two, borderRadius: Radius.lg, borderWidth: StyleSheet.hairlineWidth }, secondaryText: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold }, disabled: { opacity: 0.45 },
   warning: { fontSize: FontSize.sm, textAlign: 'center' }, errorTitle: { fontSize: FontSize.xl, fontWeight: FontWeight.bold, textAlign: 'center' }, errorCopy: { fontSize: FontSize.base, textAlign: 'center' },
   action: { minHeight: 48, borderRadius: Radius.full, justifyContent: 'center', paddingHorizontal: Spacing.four }, actionText: { fontSize: FontSize.base, fontWeight: FontWeight.bold },

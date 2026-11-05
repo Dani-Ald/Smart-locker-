@@ -15,8 +15,8 @@
         "android.permission.WRITE_SETTINGS"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/images/BOT-adaptive.png"
+        "backgroundColor": "#08245B",
+        "foregroundImage": "./assets/images/BOT.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.daniald.SmartTicket",

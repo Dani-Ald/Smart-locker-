@@ -34,6 +34,7 @@ import {
 import { LiquidGlassPanel } from '@/components/auth/liquid-glass-panel';
 import { LiquidLoginBackground } from '@/components/auth/liquid-login-background';
 import { SmartTicketLogo } from '@/components/auth/smart-ticket-logo';
+import { TicketLoader } from '@/components/TicketLoader';
 import { AuthColors, AuthPalette, Duration, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
 import { useSessionContext } from '@/context/SessionContext';
 import { AuthError, login } from '@/services/authService';
@@ -211,12 +212,12 @@ export default function LoginScreen() {
                     onPressOut={() => setButtonPressed(false)}
                     style={({ pressed }) => pressed && styles.pressed}>
                     <LinearGradient
-                      colors={[colors.primary, colors.primaryEnd]}
+                      colors={['#0CE39A', '#69007F', '#FC0987']}
                       end={{ x: 1, y: 0.5 }}
                       start={{ x: 0, y: 0.5 }}
                       style={styles.cta}>
                       <LinearGradient
-                        colors={['rgba(255,255,255,0.30)', 'rgba(255,255,255,0.04)', 'rgba(255,255,255,0)']}
+                        colors={['rgba(255,255,255,0.34)', 'rgba(255,255,255,0.06)', 'rgba(255,255,255,0)']}
                         end={{ x: 0.2, y: 1 }}
                         pointerEvents="none"
                         start={{ x: 0, y: 0 }}
@@ -257,6 +258,15 @@ export default function LoginScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+      {loading ? (
+        <View accessibilityLiveRegion="polite" style={styles.loginLoadingOverlay}>
+          <TicketLoader />
+          <Text style={styles.loginLoadingTitle}>Preparando tu acceso</Text>
+          <Text style={styles.loginLoadingCopy}>
+            {showSlowConnectionMessage ? 'La conexión está tardando un poco. Seguimos intentando…' : 'Estamos conectando con Smart Ticket…'}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -339,6 +349,9 @@ function createStyles(colors: AuthPalette) {
     arrowCircle: { position: 'absolute', right: Spacing.two, width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: Radius.full, backgroundColor: colors.primarySoft },
     pressed: { opacity: 0.82 },
     disabled: { opacity: 0.65 },
+    loginLoadingOverlay: { ...StyleSheet.absoluteFill, zIndex: 20, alignItems: 'center', justifyContent: 'center', gap: Spacing.three, paddingHorizontal: Spacing.six, backgroundColor: colors.background === '#09111F' ? 'rgba(5, 14, 29, 0.96)' : 'rgba(18, 33, 51, 0.90)' },
+    loginLoadingTitle: { marginTop: Spacing.two, color: '#FFFFFF', fontSize: FontSize.xl, fontWeight: FontWeight.bold, textAlign: 'center' },
+    loginLoadingCopy: { maxWidth: 300, color: 'rgba(255,255,255,0.76)', fontSize: FontSize.base, lineHeight: 23, textAlign: 'center' },
     textButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.one },
     link: { color: colors.primary, fontSize: FontSize.base, fontWeight: FontWeight.bold },
     footerGlass: { minHeight: 48, alignSelf: 'center', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: Spacing.one, paddingHorizontal: Spacing.three, borderRadius: Radius.full, borderWidth: StyleSheet.hairlineWidth, backgroundColor: colors.glassSurface },

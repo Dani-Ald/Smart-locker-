@@ -436,7 +436,7 @@ function PrimaryButton({ colors, disabled, label, loading, onPress, styles }: {
       disabled={disabled}
       onPress={() => void onPress()}
       style={({ pressed }) => [styles.ctaShadow, pressed && styles.pressed, disabled && styles.disabled]}>
-      <LinearGradient colors={[colors.primary, colors.primaryEnd]} end={{ x: 1, y: 0.5 }} start={{ x: 0, y: 0.5 }} style={styles.cta}>
+      <LinearGradient colors={['#0CE39A', '#69007F', '#FC0987']} end={{ x: 1, y: 0.5 }} start={{ x: 0, y: 0.5 }} style={styles.cta}>
         {loading ? <ActivityIndicator color={colors.onPrimary} /> : <>
           <Text style={styles.ctaText}>{label}</Text>
           <View style={styles.arrowCircle}><ArrowRightIcon color={colors.onPrimary} size={18} /></View>

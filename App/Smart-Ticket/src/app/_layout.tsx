@@ -1,14 +1,15 @@
 import React, { useEffect, useRef } from 'react';
-import { ActivityIndicator, View, useColorScheme } from 'react-native';
+import { View, useColorScheme } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider, Stack, router, usePathname, useRootNavigationState, type Href } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { TicketLoader } from '@/components/TicketLoader';
 import { BiometricGate } from '@/components/security/BiometricGate';
 import ErrorState from '@/components/ErrorState';
 import { ToastRoot } from '@/components/Toast';
-import { Brand, Colors } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { SessionProvider, useSessionContext } from '@/context/SessionContext';
 import { useOtaUpdate } from '@/hooks/use-ota-update';
 import { WalletProvider } from '@/hooks/use-wallet';
@@ -52,7 +53,7 @@ function RootNavigator() {
           }} />
         ) : storageError ? (
           <ErrorState title="No se pudo leer la sesión" message={storageError} onRetry={() => void retrySession()} />
-        ) : <ActivityIndicator size="large" color={Brand.blue} accessibilityLabel="Cargando sesión" />}
+        ) : <TicketLoader />}
       </View>
     );
   }
