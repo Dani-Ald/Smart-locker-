@@ -35,20 +35,12 @@ type Props = {
   qrComponent?: React.ReactNode;
 };
 
-const COLOR_STOPS = [
-  '#cccccc',
-  '#ff6bfe',
-  '#00f9f8',
-  '#dddddd',
-  '#0081fd',
-  '#eef0bc',
-  '#0081fd',
-  '#ff6bfe',
-  '#1a1a2e',
-  '#0081fd',
-  '#dddddd',
-  '#01fefb',
-  '#cccccc',
+const HOLOGRAPHIC_PALETTES = [
+  ['#cccccc', '#ff6bfe', '#00f9f8', '#dddddd', '#0081fd', '#eef0bc', '#0081fd', '#ff6bfe', '#1a1a2e', '#0081fd', '#dddddd', '#01fefb', '#cccccc'],
+  ['#d9f7ff', '#38bdf8', '#a78bfa', '#f0abfc', '#e0f2fe', '#60a5fa', '#c4b5fd', '#22d3ee', '#1e3a5f', '#818cf8', '#dbeafe', '#67e8f9', '#d9f7ff'],
+  ['#fef3c7', '#fb7185', '#fbbf24', '#fce7f3', '#f97316', '#fde68a', '#f43f5e', '#fdba74', '#7c2d12', '#fb923c', '#ffedd5', '#fda4af', '#fef3c7'],
+  ['#dcfce7', '#34d399', '#a3e635', '#d1fae5', '#2dd4bf', '#bef264', '#10b981', '#86efac', '#14532d', '#4ade80', '#ecfccb', '#5eead4', '#dcfce7'],
+  ['#f3e8ff', '#c084fc', '#f0abfc', '#ede9fe', '#818cf8', '#e9d5ff', '#d946ef', '#a78bfa', '#581c87', '#c026d3', '#faf5ff', '#e879f9', '#f3e8ff'],
 ];
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -71,16 +63,16 @@ function interpolateColors(color1: string, color2: string, factor: number): stri
   return rgbToHex(r, g, b);
 }
 
-function getConicColor(t: number): string {
+function getConicColor(t: number, colorStops: string[]): string {
   const normalized = ((t % 1) + 1) % 1;
-  const count = COLOR_STOPS.length - 1;
+  const count = colorStops.length - 1;
   const scaled = normalized * count;
   const index = Math.min(Math.floor(scaled), count - 1);
   const factor = scaled - index;
-  return interpolateColors(COLOR_STOPS[index], COLOR_STOPS[index + 1], factor);
+  return interpolateColors(colorStops[index], colorStops[index + 1], factor);
 }
 
-function generateConicSlices(cx: number, cy: number, radius: number, numSlices = 48) {
+function generateConicSlices(cx: number, cy: number, radius: number, colorStops: string[], numSlices = 48) {
   const slices = [];
   for (let i = 0; i < numSlices; i++) {
     const a1 = (i / numSlices) * 2 * Math.PI;
@@ -90,7 +82,7 @@ function generateConicSlices(cx: number, cy: number, radius: number, numSlices =
     const x2 = cx + radius * Math.cos(a2);
     const y2 = cy + radius * Math.sin(a2);
     const path = `M ${cx} ${cy} L ${x1.toFixed(1)} ${y1.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)} Z`;
-    const color = getConicColor((i + 0.5) / numSlices);
+    const color = getConicColor((i + 0.5) / numSlices, colorStops);
     slices.push(<Path key={i} d={path} fill={color} opacity={0.88} />);
   }
   return slices;
@@ -162,6 +154,15 @@ export function HoloTicket({
     transform: [{ translateX: shimmerPos.value * (width + 160) - 80 }],
   }));
 
+  const paletteIndex = useMemo(() => {
+    let hash = 0;
+    for (let index = 0; index < ticket.id.length; index += 1) {
+      hash = (hash * 31 + ticket.id.charCodeAt(index)) | 0;
+    }
+    return Math.abs(hash) % HOLOGRAPHIC_PALETTES.length;
+  }, [ticket.id]);
+  const colorStops = HOLOGRAPHIC_PALETTES[paletteIndex];
+
   useEffect(() => {
     if (!animated) {
       shimmerPos.value = 0;
@@ -181,8 +182,8 @@ export function HoloTicket({
     const cx = width * 0.6;
     const cy = height * 0.5;
     const radius = Math.max(width, height) * 1.2;
-    return generateConicSlices(cx, cy, radius, 42);
-  }, [width, height]);
+    return generateConicSlices(cx, cy, radius, colorStops, 42);
+  }, [width, height, colorStops]);
 
   const topCircles = useMemo(() => {
     const circles = [];

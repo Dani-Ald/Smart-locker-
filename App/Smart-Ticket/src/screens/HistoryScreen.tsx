@@ -18,7 +18,10 @@ export default function HistoryScreen() {
   const wallet = useWallet();
   const now = useCurrentTime();
   const history = wallet.tickets
-    .filter((ticket) => new Date(ticket.evento.fechaHora).getTime() < now || ['usado', 'cancelado'].includes(ticket.estado))
+    .filter((ticket) => {
+      const eventTime = new Date(ticket.evento.fechaHora).getTime();
+      return !Number.isNaN(eventTime) && eventTime < now;
+    })
     .sort((a, b) => new Date(b.evento.fechaHora).getTime() - new Date(a.evento.fechaHora).getTime());
 
   return (
@@ -50,7 +53,8 @@ export default function HistoryScreen() {
 
 function HistoryCard({ ticket, token }: { ticket: WalletTicket; token: string }) {
   const colors = useWalletTheme();
-  const canReview = ticket.estado === 'usado';
+  const attended = ticket.estado === 'usado';
+  const canReview = attended;
   const [expanded, setExpanded] = useState(false);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -81,9 +85,9 @@ function HistoryCard({ ticket, token }: { ticket: WalletTicket; token: string })
             {new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium' }).format(new Date(ticket.evento.fechaHora))}
           </Text>
         </View>
-        <View style={[styles.usedBadge, { backgroundColor: canReview ? colors.successSoft : colors.surfaceMuted }]}>
-          <Text style={[styles.usedText, { color: canReview ? colors.success : colors.textSecondary }]}>
-            {canReview ? 'Asistencia confirmada' : ticket.estado}
+        <View style={[styles.usedBadge, { backgroundColor: attended ? colors.successSoft : colors.surfaceMuted }]}>
+          <Text style={[styles.usedText, { color: attended ? colors.success : colors.textSecondary }]}>
+            {attended ? 'Asistencia confirmada' : ticket.estado === 'cancelado' ? 'Boleto cancelado' : 'Evento finalizado'}
           </Text>
         </View>
       </View>

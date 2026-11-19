@@ -14,10 +14,10 @@ import { HoloTicket } from '@/components/tickets/HoloTicket';
 import { Duration } from '@/constants/theme';
 import type { WalletTicket } from '@/types/ticket';
 
-type Props = { ticket: WalletTicket; featured?: boolean; now: number };
+type Props = { ticket: WalletTicket; featured?: boolean; active?: boolean; now: number };
 const welcomed = new Set<string>();
 
-export function TicketCard({ ticket, featured = false, now }: Props) {
+export function TicketCard({ ticket, featured = false, active = true, now }: Props) {
   const [reduceMotion, setReduceMotion] = useState<boolean | null>(null);
   const progress = useSharedValue(1);
   const hoverY = useSharedValue(0);
@@ -39,13 +39,13 @@ export function TicketCard({ ticket, featured = false, now }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      if (featured && reduceMotion === false && !welcomed.has(key)) {
+      if (featured && active && reduceMotion === false && !welcomed.has(key)) {
         welcomed.add(key);
         progress.set(0);
         progress.set(withTiming(1, { duration: Duration.ticket, easing: Easing.out(Easing.cubic) }));
       }
 
-      if (featured && reduceMotion === false) {
+      if (featured && active && reduceMotion === false) {
         hoverY.set(
           withRepeat(
             withTiming(-7, { duration: 1500, easing: Easing.inOut(Easing.quad) }),
@@ -82,7 +82,7 @@ export function TicketCard({ ticket, featured = false, now }: Props) {
         settle();
         listener.remove();
       };
-    }, [featured, key, progress, hoverY, hoverScale, reduceMotion])
+    }, [featured, active, key, progress, hoverY, hoverScale, reduceMotion])
   );
 
   const cardStyle = useAnimatedStyle(() => ({
@@ -117,7 +117,7 @@ export function TicketCard({ ticket, featured = false, now }: Props) {
           ticket={ticket}
           variant={featured ? 'featured' : 'compact'}
           now={now}
-          animated={featured && reduceMotion === false}
+          animated={featured && active && reduceMotion === false}
         />
       </Pressable>
     </Animated.View>

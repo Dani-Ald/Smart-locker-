@@ -8,6 +8,7 @@
     "scheme": "smartticket",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.daniald.SmartTicket",
       "icon": "./assets/images/BOT-icon.png"
     },
     "android": {
@@ -23,7 +24,8 @@
       "minSdkVersion": 26,
       "targetSdkVersion": 35,
       "compileSdkVersion": 35,
-      "buildToolsVersion": "35.0.0"
+      "buildToolsVersion": "35.0.0",
+      "versionCode": 3
     },
     "web": {
       "output": "static",

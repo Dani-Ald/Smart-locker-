@@ -7,9 +7,11 @@ import { StatusBar } from 'expo-status-bar';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { TicketLoader } from '@/components/TicketLoader';
 import { BiometricGate } from '@/components/security/BiometricGate';
+import { GuidedTourOverlay } from '@/components/GuidedTourOverlay';
 import ErrorState from '@/components/ErrorState';
 import { ToastRoot } from '@/components/Toast';
 import { Colors } from '@/constants/theme';
+import { GuidedTourProvider } from '@/context/GuidedTourContext';
 import { SessionProvider, useSessionContext } from '@/context/SessionContext';
 import { useOtaUpdate } from '@/hooks/use-ota-update';
 import { WalletProvider } from '@/hooks/use-wallet';
@@ -84,13 +86,16 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <SessionProvider>
-        <AnimatedSplashOverlay />
-        <BiometricGate>
-          <WalletProvider>
-            <RootNavigator />
-          </WalletProvider>
-        </BiometricGate>
-        <ToastRoot />
+        <GuidedTourProvider>
+          <AnimatedSplashOverlay />
+          <BiometricGate>
+            <WalletProvider>
+              <RootNavigator />
+              <GuidedTourOverlay />
+            </WalletProvider>
+          </BiometricGate>
+          <ToastRoot />
+        </GuidedTourProvider>
       </SessionProvider>
     </ThemeProvider>
   );

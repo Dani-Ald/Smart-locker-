@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassSurface, WalletBackdrop } from '@/components/ui/GlassSurface';
 
 import { FontSize, FontWeight, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { useGuidedTour } from '@/context/GuidedTourContext';
 import { useSessionContext } from '@/context/SessionContext';
 import { useWalletTheme } from '@/hooks/use-wallet-theme';
 import { logoutRemote } from '@/services/authService';
@@ -13,6 +14,7 @@ import { authenticateWithBiometrics, canUseBiometrics, isBiometricEnabled, setBi
 export default function ProfileScreen() {
   const colors = useWalletTheme();
   const { session, clearSession } = useSessionContext();
+  const { startTour } = useGuidedTour();
   const [available, setAvailable] = useState(false);
   const [biometric, setBiometric] = useState(false);
   const [loadingPreference, setLoadingPreference] = useState(true);
@@ -76,6 +78,22 @@ export default function ProfileScreen() {
             <Text style={[styles.email, { color: colors.textSecondary }]}>{session?.correo}</Text>
           </View>
         </GlassSurface>
+
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Ayuda</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Volver a ver el recorrido de la aplicación"
+          onPress={startTour}
+          style={[styles.setting, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.settingIcon, { backgroundColor: colors.primarySoft }]}>
+            <SymbolView name={{ ios: 'sparkles', android: 'auto_awesome', web: 'auto_awesome' }} size={22} tintColor={colors.primary} />
+          </View>
+          <View style={styles.settingCopy}>
+            <Text style={[styles.settingTitle, { color: colors.text }]}>Ver recorrido</Text>
+            <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>Repasa las secciones principales de la app.</Text>
+          </View>
+          <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={18} tintColor={colors.textSecondary} />
+        </Pressable>
 
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Seguridad</Text>
         <View style={[styles.setting, { backgroundColor: colors.surface, borderColor: colors.border }]}>

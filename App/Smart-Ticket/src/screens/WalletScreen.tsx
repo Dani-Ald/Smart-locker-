@@ -1,5 +1,5 @@
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -26,6 +26,12 @@ export default function WalletScreen() {
   const wallet = useWallet();
   const now = useCurrentTime();
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [carouselWidth, setCarouselWidth] = useState(0);
+  const [activeTicketIndex, setActiveTicketIndex] = useState(0);
+  const carouselRef = useRef<ScrollView>(null);
+  const carouselCardWidth = Math.min(280, Math.max(240, carouselWidth - 42));
+  const carouselGap = 12;
+  const carouselStride = carouselCardWidth + carouselGap;
   const cancelled = wallet.tickets.filter((ticket) => ticket.estado === 'cancelado');
   const invalidDate = wallet.tickets.filter((ticket) => Number.isNaN(new Date(ticket.evento.fechaHora).getTime()));
   const expired = wallet.tickets.filter((ticket) => {
@@ -35,7 +41,7 @@ export default function WalletScreen() {
   const future = wallet.tickets
     .filter((ticket) => new Date(ticket.evento.fechaHora).getTime() >= now && ticket.estado !== 'cancelado')
     .sort((a, b) => new Date(a.evento.fechaHora).getTime() - new Date(b.evento.fechaHora).getTime());
-  const [next, ...later] = future;
+  const currentTicketIndex = Math.min(activeTicketIndex, Math.max(future.length - 1, 0));
   const synced = wallet.diagnostics.stage === 'sincronizado' && !wallet.error && !wallet.offline;
   const syncLabel = wallet.error ? 'Sin actualizar' : wallet.offline ? 'Sin conexión' : synced ? 'Sincronizado' : 'Sincronizando…';
   const diagnostics = buildDiagnostics({
@@ -89,10 +95,84 @@ export default function WalletScreen() {
           </View>
         ) : null}
 
-        {next ? (
+        {future.length > 0 ? (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Tu próximo acceso</Text>
-            <TicketCard ticket={next} featured now={now} />
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Tus próximos accesos</Text>
+            <View
+              style={styles.carouselViewport}
+              onLayout={(event) => setCarouselWidth(event.nativeEvent.layout.width)}>
+              {carouselWidth > 0 ? (
+                <ScrollView
+                  ref={carouselRef}
+                  horizontal
+                  decelerationRate="fast"
+                  snapToInterval={carouselStride}
+                  snapToAlignment="start"
+                  showsHorizontalScrollIndicator={false}
+                  scrollEventThrottle={16}
+                  contentContainerStyle={{ paddingHorizontal: (carouselWidth - carouselCardWidth) / 2 }}
+                  onScroll={(event) => {
+                    const index = Math.round(event.nativeEvent.contentOffset.x / carouselStride);
+                    setActiveTicketIndex(Math.max(0, Math.min(index, future.length - 1)));
+                  }}>
+                  {future.map((ticket, index) => (
+                    <View key={ticket.id} style={{ width: carouselCardWidth, marginRight: index < future.length - 1 ? carouselGap : 0, alignItems: 'center', justifyContent: 'center' }}>
+                      <View style={{ transform: [{ scale: carouselWidth < 320 ? (carouselWidth - 36) / 280 : 1 }] }}>
+                        <TicketCard ticket={ticket} featured active={index === currentTicketIndex} now={now} />
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+              ) : null}
+              {future.length > 1 ? (
+                <>
+                  <Pressable
+                    accessibilityLabel="Ver boleto anterior"
+                    accessibilityRole="button"
+                    disabled={currentTicketIndex === 0}
+                    onPress={() => {
+                      const index = Math.max(currentTicketIndex - 1, 0);
+                      setActiveTicketIndex(index);
+                      carouselRef.current?.scrollTo({ x: index * carouselStride, animated: true });
+                    }}
+                    style={({ pressed }) => [styles.carouselArrowOverlay, styles.carouselArrowLeft, { backgroundColor: colors.surface, borderColor: colors.border }, currentTicketIndex === 0 && styles.disabled, pressed && styles.pressed]}>
+                    <SymbolView name={{ ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' }} size={20} tintColor={colors.text} />
+                  </Pressable>
+                  <Pressable
+                    accessibilityLabel="Ver siguiente boleto"
+                    accessibilityRole="button"
+                    disabled={currentTicketIndex === future.length - 1}
+                    onPress={() => {
+                      const index = Math.min(currentTicketIndex + 1, future.length - 1);
+                      setActiveTicketIndex(index);
+                      carouselRef.current?.scrollTo({ x: index * carouselStride, animated: true });
+                    }}
+                    style={({ pressed }) => [styles.carouselArrowOverlay, styles.carouselArrowRight, { backgroundColor: colors.surface, borderColor: colors.border }, currentTicketIndex === future.length - 1 && styles.disabled, pressed && styles.pressed]}>
+                    <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={20} tintColor={colors.text} />
+                  </Pressable>
+                </>
+              ) : null}
+            </View>
+            {future.length > 1 ? (
+              <View style={styles.carouselControls}>
+                <View style={styles.carouselDots} accessibilityLabel={`Boleto ${currentTicketIndex + 1} de ${future.length}`}>
+                  {future.map((ticket, index) => (
+                    <Pressable
+                      key={ticket.id}
+                      accessibilityLabel={`Ir al boleto ${index + 1}`}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: index === currentTicketIndex }}
+                      onPress={() => {
+                        setActiveTicketIndex(index);
+                        carouselRef.current?.scrollTo({ x: index * carouselStride, animated: true });
+                      }}
+                      style={styles.carouselDotButton}>
+                      <View style={[styles.carouselDot, { backgroundColor: index === currentTicketIndex ? colors.primary : colors.border }]} />
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ) : null}
           </View>
         ) : wallet.loading ? (
           <View style={[styles.loadingCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -126,13 +206,6 @@ export default function WalletScreen() {
             </Pressable>
           </View>
         )}
-
-        {later.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Próximamente</Text>
-            {later.map((ticket) => <TicketCard key={ticket.id} ticket={ticket} now={now} />)}
-          </View>
-        ) : null}
 
         {__DEV__ ? <View style={styles.diagnosticsSection}>
           <Pressable
@@ -313,6 +386,14 @@ const styles = StyleSheet.create({
   notice: { borderRadius: Radius.lg, padding: Spacing.three },
   noticeText: { fontSize: FontSize.sm, fontWeight: FontWeight.medium },
   section: { gap: Spacing.three },
+  carouselViewport: { width: '100%', overflow: 'hidden' },
+  carouselControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  carouselDots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  carouselDotButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  carouselDot: { width: 9, height: 9, borderRadius: Radius.full },
+  carouselArrowOverlay: { position: 'absolute', top: '50%', width: 44, height: 44, marginTop: -22, alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.full, zIndex: 2 },
+  carouselArrowLeft: { left: 2 },
+  carouselArrowRight: { right: 2 },
   sectionTitle: { fontSize: FontSize.sm, fontWeight: FontWeight.bold, letterSpacing: 0.8, textTransform: 'uppercase' },
   loadingCard: { height: 190, padding: Spacing.four, gap: Spacing.three, borderRadius: Radius.xl, borderWidth: StyleSheet.hairlineWidth },
   loadingLineLarge: { width: '70%', height: 24, borderRadius: Radius.sm },
