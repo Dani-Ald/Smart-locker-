@@ -29,7 +29,7 @@ export default function HistoryScreen() {
       <WalletBackdrop />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>TUS EXPERIENCIAS</Text>
+          <Text style={[styles.eyebrow, { color: colors.primaryText }]}>TUS EXPERIENCIAS</Text>
           <Text style={[styles.heading, { color: colors.text }]}>Historial</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Eventos concluidos y reseñas verificadas.</Text>
         </View>
@@ -95,7 +95,7 @@ function HistoryCard({ ticket, token }: { ticket: WalletTicket; token: string })
       {canReview ? (
         <Pressable accessibilityRole="button" onPress={() => setExpanded((value) => !value)} style={[styles.reviewToggle, { backgroundColor: colors.primarySoft }]}>
           <SymbolView name={{ ios: 'star', android: 'star', web: 'star' }} size={19} tintColor={colors.primary} />
-          <Text style={[styles.reviewToggleText, { color: colors.primary }]}>Calificar evento</Text>
+          <Text style={[styles.reviewToggleText, { color: colors.primaryText }]}>Calificar evento</Text>
         </Pressable>
       ) : null}
 

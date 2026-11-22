@@ -66,12 +66,12 @@ export default function ProfileScreen() {
       <WalletBackdrop />
       <ScrollView contentContainerStyle={styles.content}>
         <View>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>CUENTA Y SEGURIDAD</Text>
+          <Text style={[styles.eyebrow, { color: colors.primaryText }]}>CUENTA Y SEGURIDAD</Text>
           <Text style={[styles.heading, { color: colors.text }]}>Perfil</Text>
         </View>
         <GlassSurface style={styles.profileCard}>
           <View style={[styles.avatar, { backgroundColor: colors.primarySoft }]}>
-            <Text style={[styles.avatarText, { color: colors.primary }]}>{session?.nombre.trim().charAt(0).toUpperCase()}</Text>
+            <Text style={[styles.avatarText, { color: colors.primaryText }]}>{session?.nombre.trim().charAt(0).toUpperCase()}</Text>
           </View>
           <View style={styles.profileCopy}>
             <Text style={[styles.name, { color: colors.text }]}>{session?.nombre}</Text>

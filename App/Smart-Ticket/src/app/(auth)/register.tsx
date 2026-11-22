@@ -521,7 +521,7 @@ function createStyles(colors: AuthPalette) {
     footer: { minHeight: 44, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: Spacing.one },
     footerText: { color: colors.textSecondary, fontSize: FontSize.base },
     textButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.one },
-    link: { color: colors.primary, fontSize: FontSize.base, fontWeight: FontWeight.bold },
+    link: { color: colors.primaryText, fontSize: FontSize.base, fontWeight: FontWeight.bold },
     mutedLink: { color: colors.textMuted },
     codeActions: { flexDirection: 'row', justifyContent: 'space-between' },
     strengthContainer: { gap: Spacing.one },

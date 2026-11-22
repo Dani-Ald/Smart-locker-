@@ -14,10 +14,10 @@ import { HoloTicket } from '@/components/tickets/HoloTicket';
 import { Duration } from '@/constants/theme';
 import type { WalletTicket } from '@/types/ticket';
 
-type Props = { ticket: WalletTicket; featured?: boolean; active?: boolean; now: number };
+type Props = { ticket: WalletTicket; featured?: boolean; active?: boolean; now: number; cardWidth?: number };
 const welcomed = new Set<string>();
 
-export function TicketCard({ ticket, featured = false, active = true, now }: Props) {
+export function TicketCard({ ticket, featured = false, active = true, now, cardWidth }: Props) {
   const [reduceMotion, setReduceMotion] = useState<boolean | null>(null);
   const progress = useSharedValue(1);
   const hoverY = useSharedValue(0);
@@ -115,6 +115,7 @@ export function TicketCard({ ticket, featured = false, active = true, now }: Pro
         style={({ pressed }) => pressed && (reduceMotion ? styles.pressedStill : styles.pressed)}>
         <HoloTicket
           ticket={ticket}
+          cardWidth={cardWidth}
           variant={featured ? 'featured' : 'compact'}
           now={now}
           animated={featured && active && reduceMotion === false}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Palette } from '@/constants/theme';
 
 /** Indicador animado de Smart Ticket para esperas breves. */
 export function TicketLoader() {
@@ -49,11 +50,11 @@ export function TicketLoader() {
 
 const styles = StyleSheet.create({
   container: { width: 112, height: 112, alignItems: 'center', justifyContent: 'center' },
-  glow: { position: 'absolute', width: 96, height: 96, borderRadius: 48, backgroundColor: '#72EBC3' },
-  head: { width: 76, height: 76, borderRadius: 38, backgroundColor: '#E5F295', shadowColor: '#5BEEBD', shadowOpacity: 0.75, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 9 },
-  eye: { position: 'absolute', width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EFFFC8', shadowColor: '#000000', shadowOpacity: 0.18, shadowRadius: 8, elevation: 4 },
-  pupil: { width: 9, height: 22, borderRadius: 6, backgroundColor: '#09111F' },
-  particle: { position: 'absolute', borderRadius: 99, backgroundColor: '#E5F295', shadowColor: '#5BEEBD', shadowOpacity: 0.65, shadowRadius: 8, elevation: 3 },
+  glow: { position: 'absolute', width: 96, height: 96, borderRadius: 48, backgroundColor: Palette.skyBlue },
+  head: { width: 76, height: 76, borderRadius: 38, backgroundColor: Palette.pastelBlue, shadowColor: Palette.brightBlue, shadowOpacity: 0.75, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 9 },
+  eye: { position: 'absolute', width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: Palette.coldWhite, shadowColor: Palette.navy, shadowOpacity: 0.18, shadowRadius: 8, elevation: 4 },
+  pupil: { width: 9, height: 22, borderRadius: 6, backgroundColor: Palette.navy },
+  particle: { position: 'absolute', borderRadius: 99, backgroundColor: Palette.pastelBlue, shadowColor: Palette.brightBlue, shadowOpacity: 0.65, shadowRadius: 8, elevation: 3 },
   particleOne: { width: 16, height: 16, top: 7, left: 15 },
   particleTwo: { width: 10, height: 10, top: 19, right: 10 },
   particleThree: { width: 7, height: 7, top: 0, right: 32 },

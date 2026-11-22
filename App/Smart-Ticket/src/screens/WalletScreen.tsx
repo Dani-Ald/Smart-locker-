@@ -1,11 +1,14 @@
 import { SymbolView } from 'expo-symbols';
+import { usePathname } from 'expo-router';
 import { useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TicketCard } from '@/components/tickets/TicketCard';
+import { TicketDeckIntro } from '@/components/tickets/TicketDeckIntro';
+import { useGuidedTour } from '@/context/GuidedTourContext';
 import { WalletBackdrop } from '@/components/ui/GlassSurface';
-import { FontSize, FontWeight, MaxContentWidth, Radius, Spacing, WalletPalette } from '@/constants/theme';
+import { FontSize, FontWeight, MaxContentWidth, Radius, Spacing, WalletLayout, WalletPalette } from '@/constants/theme';
 import { WEB_EVENTS_URL } from '@/constants/web';
 import { useSessionContext } from '@/context/SessionContext';
 import { useCurrentTime } from '@/hooks/use-current-time';
@@ -24,13 +27,15 @@ export default function WalletScreen() {
   const colors = useWalletTheme();
   const { session } = useSessionContext();
   const wallet = useWallet();
+  const { visible: tourVisible } = useGuidedTour();
+  const pathname = usePathname();
   const now = useCurrentTime();
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [carouselWidth, setCarouselWidth] = useState(0);
   const [activeTicketIndex, setActiveTicketIndex] = useState(0);
   const carouselRef = useRef<ScrollView>(null);
-  const carouselCardWidth = Math.min(280, Math.max(240, carouselWidth - 42));
-  const carouselGap = 12;
+  const carouselCardWidth = Math.min(WalletLayout.ticketWidth, Math.max(1, carouselWidth - Spacing.five));
+  const carouselGap = WalletLayout.ticketGap;
   const carouselStride = carouselCardWidth + carouselGap;
   const cancelled = wallet.tickets.filter((ticket) => ticket.estado === 'cancelado');
   const invalidDate = wallet.tickets.filter((ticket) => Number.isNaN(new Date(ticket.evento.fechaHora).getTime()));
@@ -68,7 +73,7 @@ export default function WalletScreen() {
         }>
         <View style={styles.header}>
           <View>
-            <Text style={[styles.eyebrow, { color: colors.primary }]}>SMART TICKET WALLET</Text>
+            <Text style={[styles.eyebrow, { color: colors.primaryText }]}>SMART TICKET WALLET</Text>
             <Text style={[styles.heading, { color: colors.text }]}>Mis boletos</Text>
           </View>
           <View accessibilityLiveRegion="polite" style={[styles.syncBadge, { backgroundColor: synced ? colors.successSoft : colors.surfaceMuted }]}>
@@ -105,24 +110,26 @@ export default function WalletScreen() {
                 <ScrollView
                   ref={carouselRef}
                   horizontal
+                  removeClippedSubviews={false}
                   decelerationRate="fast"
                   snapToInterval={carouselStride}
                   snapToAlignment="start"
                   showsHorizontalScrollIndicator={false}
                   scrollEventThrottle={16}
-                  contentContainerStyle={{ paddingHorizontal: (carouselWidth - carouselCardWidth) / 2 }}
+                  contentContainerStyle={{ paddingHorizontal: (carouselWidth - carouselCardWidth) / 2, paddingVertical: Spacing.three }}
                   onScroll={(event) => {
                     const index = Math.round(event.nativeEvent.contentOffset.x / carouselStride);
                     setActiveTicketIndex(Math.max(0, Math.min(index, future.length - 1)));
                   }}>
                   {future.map((ticket, index) => (
                     <View key={ticket.id} style={{ width: carouselCardWidth, marginRight: index < future.length - 1 ? carouselGap : 0, alignItems: 'center', justifyContent: 'center' }}>
-                      <View style={{ transform: [{ scale: carouselWidth < 320 ? (carouselWidth - 36) / 280 : 1 }] }}>
-                        <TicketCard ticket={ticket} featured active={index === currentTicketIndex} now={now} />
-                      </View>
+                      <TicketCard ticket={ticket} cardWidth={carouselCardWidth} featured active={index === currentTicketIndex} now={now} />
                     </View>
                   ))}
                 </ScrollView>
+              ) : null}
+              {!tourVisible && pathname === '/' && carouselWidth > 0 && future.length > 1 ? (
+                <TicketDeckIntro key={session?.id ?? 'local'} tickets={future} width={carouselCardWidth} now={now} />
               ) : null}
               {future.length > 1 ? (
                 <>
@@ -153,6 +160,11 @@ export default function WalletScreen() {
                 </>
               ) : null}
             </View>
+            {future.length > 1 ? (
+              <Text style={[styles.ticketCount, { color: colors.textSecondary }]}>
+                {currentTicketIndex + 1} de {future.length} boletos · Desliza para ver más
+              </Text>
+            ) : null}
             {future.length > 1 ? (
               <View style={styles.carouselControls}>
                 <View style={styles.carouselDots} accessibilityLabel={`Boleto ${currentTicketIndex + 1} de ${future.length}`}>
@@ -274,7 +286,7 @@ export default function WalletScreen() {
                   size={18}
                   tintColor={colors.primary}
                 />
-                <Text style={[styles.retryButtonText, { color: colors.primary }]}>
+              <Text style={[styles.retryButtonText, { color: colors.primaryText }]}>
                   {wallet.refreshing ? 'Sincronizando…' : 'Reintentar sincronización'}
                 </Text>
               </Pressable>
@@ -386,7 +398,8 @@ const styles = StyleSheet.create({
   notice: { borderRadius: Radius.lg, padding: Spacing.three },
   noticeText: { fontSize: FontSize.sm, fontWeight: FontWeight.medium },
   section: { gap: Spacing.three },
-  carouselViewport: { width: '100%', overflow: 'hidden' },
+  carouselViewport: { marginHorizontal: -Spacing.three, overflow: 'hidden' },
+  ticketCount: { fontSize: FontSize.base, textAlign: 'center' },
   carouselControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   carouselDots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   carouselDotButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

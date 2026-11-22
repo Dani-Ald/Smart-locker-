@@ -22,7 +22,7 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 
-import { FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
+import { FontSize, FontWeight, Palette, Radius, Spacing, TicketColors, WalletLayout } from '@/constants/theme';
 import type { WalletTicket } from '@/types/ticket';
 
 export type HoloTicketVariant = 'featured' | 'compact' | 'detail';
@@ -33,15 +33,10 @@ type Props = {
   now: number;
   animated?: boolean;
   qrComponent?: React.ReactNode;
+  cardWidth?: number;
 };
 
-const HOLOGRAPHIC_PALETTES = [
-  ['#cccccc', '#ff6bfe', '#00f9f8', '#dddddd', '#0081fd', '#eef0bc', '#0081fd', '#ff6bfe', '#1a1a2e', '#0081fd', '#dddddd', '#01fefb', '#cccccc'],
-  ['#d9f7ff', '#38bdf8', '#a78bfa', '#f0abfc', '#e0f2fe', '#60a5fa', '#c4b5fd', '#22d3ee', '#1e3a5f', '#818cf8', '#dbeafe', '#67e8f9', '#d9f7ff'],
-  ['#fef3c7', '#fb7185', '#fbbf24', '#fce7f3', '#f97316', '#fde68a', '#f43f5e', '#fdba74', '#7c2d12', '#fb923c', '#ffedd5', '#fda4af', '#fef3c7'],
-  ['#dcfce7', '#34d399', '#a3e635', '#d1fae5', '#2dd4bf', '#bef264', '#10b981', '#86efac', '#14532d', '#4ade80', '#ecfccb', '#5eead4', '#dcfce7'],
-  ['#f3e8ff', '#c084fc', '#f0abfc', '#ede9fe', '#818cf8', '#e9d5ff', '#d946ef', '#a78bfa', '#581c87', '#c026d3', '#faf5ff', '#e879f9', '#f3e8ff'],
-];
+const HOLOGRAPHIC_PALETTES = TicketColors.foil;
 
 function hexToRgb(hex: string): [number, number, number] {
   const clean = hex.replace('#', '');
@@ -63,7 +58,7 @@ function interpolateColors(color1: string, color2: string, factor: number): stri
   return rgbToHex(r, g, b);
 }
 
-function getConicColor(t: number, colorStops: string[]): string {
+function getConicColor(t: number, colorStops: readonly string[]): string {
   const normalized = ((t % 1) + 1) % 1;
   const count = colorStops.length - 1;
   const scaled = normalized * count;
@@ -72,7 +67,7 @@ function getConicColor(t: number, colorStops: string[]): string {
   return interpolateColors(colorStops[index], colorStops[index + 1], factor);
 }
 
-function generateConicSlices(cx: number, cy: number, radius: number, colorStops: string[], numSlices = 48) {
+function generateConicSlices(cx: number, cy: number, radius: number, colorStops: readonly string[], numSlices = 48) {
   const slices = [];
   for (let i = 0; i < numSlices; i++) {
     const a1 = (i / numSlices) * 2 * Math.PI;
@@ -107,7 +102,7 @@ function generateBarcodeLines(seedString: string, count = 26) {
         y={0}
         width={bit}
         height={28}
-        fill="#111111"
+        fill={TicketColors.text}
         rx={0.5}
       />
     );
@@ -122,13 +117,14 @@ export function HoloTicket({
   now,
   animated = false,
   qrComponent,
+  cardWidth,
 }: Props) {
   const isCompact = variant === 'compact';
   const isDetail = variant === 'detail';
   const { width: windowWidth } = useWindowDimensions();
 
-  const width = Math.min(isCompact ? 330 : isDetail ? 340 : 280, windowWidth - Spacing.four * 2);
-  const height = isCompact ? 175 : isDetail ? 530 : 440;
+  const width = cardWidth ?? Math.min(isCompact ? 330 : isDetail ? 340 : WalletLayout.ticketWidth, windowWidth - Spacing.four * 2);
+  const height = isCompact ? 175 : isDetail ? 530 : WalletLayout.ticketHeight;
   const cutoutY = isCompact ? 115 : 120;
   const perfRadius = 5;
   const perfSpacing = 16;
@@ -225,19 +221,19 @@ export function HoloTicket({
               <Circle cx={width} cy={cutoutY} r={notchRadius} fill="black" />
             </Mask>
             <SvgLinearGradient id={`linear-overlay-${svgId}`} x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0%" stopColor="#ffffff" stopOpacity={0.65} />
-              <Stop offset="50%" stopColor="#ffffff" stopOpacity={0.4} />
-              <Stop offset="100%" stopColor="#dbeafe" stopOpacity={0.7} />
+              <Stop offset="0%" stopColor={Palette.coldWhite} stopOpacity={0.65} />
+              <Stop offset="50%" stopColor={Palette.coldWhite} stopOpacity={0.4} />
+              <Stop offset="100%" stopColor={Palette.iceBlue} stopOpacity={0.7} />
             </SvgLinearGradient>
             <RadialGradient id={`pink-glow-${svgId}`} cx="75%" cy="20%" r="60%">
-              <Stop offset="0%" stopColor="#ff007f" stopOpacity={0.35} />
-              <Stop offset="100%" stopColor="#ff007f" stopOpacity={0} />
+              <Stop offset="0%" stopColor={TicketColors.glow} stopOpacity={0.35} />
+              <Stop offset="100%" stopColor={TicketColors.glow} stopOpacity={0} />
             </RadialGradient>
           </Defs>
 
           <G mask={`url(#holo-mask-${svgId})`}>
             {/* Base color background */}
-            <Rect x={0} y={0} width={width} height={height} fill="#f0f4f8" />
+            <Rect x={0} y={0} width={width} height={height} fill={TicketColors.background} />
             {/* Conic slices */}
             <G>{conicSlices}</G>
             {/* Radial glow */}
@@ -252,7 +248,7 @@ export function HoloTicket({
             y1={cutoutY}
             x2={width - 14}
             y2={cutoutY}
-            stroke="#475569"
+            stroke={TicketColors.secondary}
             strokeWidth={1.5}
             strokeDasharray="6 4"
             opacity={0.45}
@@ -270,7 +266,7 @@ export function HoloTicket({
         ]}
       >
         <LinearGradient
-          colors={['transparent', 'rgba(255, 255, 255, 0.45)', 'rgba(0, 249, 248, 0.35)', 'transparent']}
+          colors={['transparent', TicketColors.pill, TicketColors.sheen, 'transparent']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
@@ -313,7 +309,7 @@ export function HoloTicket({
                 {ticket.tipoBoleto}
               </Text>
               <View style={styles.metaRowInline}>
-                <SymbolView name={{ ios: 'calendar', android: 'calendar_today', web: 'calendar_today' }} size={13} tintColor="#1e293b" />
+                <SymbolView name={{ ios: 'calendar', android: 'calendar_today', web: 'calendar_today' }} size={13} tintColor={TicketColors.text} />
                 <Text numberOfLines={1} style={styles.metaTextCompact}>
                   {formattedDate}
                 </Text>
@@ -332,11 +328,11 @@ export function HoloTicket({
                 <View style={styles.qrContainer}>{qrComponent}</View>
                 <View style={styles.metaBlock}>
                   <View style={styles.metaRow}>
-                    <SymbolView name={{ ios: 'calendar', android: 'calendar_today', web: 'calendar_today' }} size={16} tintColor="#0f172a" />
+                    <SymbolView name={{ ios: 'calendar', android: 'calendar_today', web: 'calendar_today' }} size={16} tintColor={TicketColors.text} />
                     <Text numberOfLines={1} style={styles.metaTextFull}>{formattedDate}</Text>
                   </View>
                   <View style={styles.metaRow}>
-                    <SymbolView name={{ ios: 'mappin.and.ellipse', android: 'location_on', web: 'location_on' }} size={16} tintColor="#0f172a" />
+                    <SymbolView name={{ ios: 'mappin.and.ellipse', android: 'location_on', web: 'location_on' }} size={16} tintColor={TicketColors.text} />
                     <Text numberOfLines={1} style={styles.metaTextSecondary}>{ticket.evento.ubicacion || ticket.evento.municipio}</Text>
                   </View>
                 </View>
@@ -344,13 +340,13 @@ export function HoloTicket({
             ) : (
               <View style={styles.metaBlock}>
                 <View style={styles.metaRow}>
-                  <SymbolView name={{ ios: 'calendar', android: 'calendar_today', web: 'calendar_today' }} size={16} tintColor="#0f172a" />
+                  <SymbolView name={{ ios: 'calendar', android: 'calendar_today', web: 'calendar_today' }} size={16} tintColor={TicketColors.text} />
                   <Text numberOfLines={1} style={styles.metaTextFull}>
                     {formattedDate}
                   </Text>
                 </View>
                 <View style={styles.metaRow}>
-                  <SymbolView name={{ ios: 'mappin.and.ellipse', android: 'location_on', web: 'location_on' }} size={16} tintColor="#0f172a" />
+                  <SymbolView name={{ ios: 'mappin.and.ellipse', android: 'location_on', web: 'location_on' }} size={16} tintColor={TicketColors.text} />
                   <Text numberOfLines={1} style={styles.metaTextSecondary}>
                     {ticket.evento.ubicacion || ticket.evento.municipio}
                   </Text>
@@ -376,7 +372,7 @@ export function HoloTicket({
           {!isDetail && !isCompact && (
             <View style={styles.openPill}>
               <Text style={styles.openText}>VER</Text>
-              <SymbolView name={{ ios: 'arrow.up.right', android: 'north_east', web: 'north_east' }} size={14} tintColor="#0f172a" />
+              <SymbolView name={{ ios: 'arrow.up.right', android: 'north_east', web: 'north_east' }} size={14} tintColor={TicketColors.text} />
             </View>
           )}
         </View>
@@ -389,7 +385,7 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: Radius.lg,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: Palette.blueGray,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.18,
     shadowRadius: 16,
@@ -414,7 +410,7 @@ const styles = StyleSheet.create({
   watermarkText: {
     fontSize: 42,
     fontWeight: '900',
-    color: '#000000',
+    color: TicketColors.text,
     letterSpacing: 6,
   },
   contentLayer: {
@@ -434,13 +430,13 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: FontWeight.heavy,
     letterSpacing: 1.8,
-    color: '#0f172a',
+    color: TicketColors.text,
   },
   brandSub: {
     fontSize: 9,
     fontWeight: FontWeight.bold,
     letterSpacing: 1.2,
-    color: '#475569',
+    color: TicketColors.secondary,
   },
   scissorsWrap: {
     transform: [{ rotate: '185deg' }],
@@ -448,7 +444,7 @@ const styles = StyleSheet.create({
   },
   scissorsText: {
     fontSize: 18,
-    color: '#0f172a',
+    color: TicketColors.text,
   },
   statusBadge: {
     borderRadius: Radius.full,
@@ -456,20 +452,20 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   statusActive: {
-    backgroundColor: '#dcfce7',
+    backgroundColor: TicketColors.successSoft,
   },
   statusMuted: {
-    backgroundColor: '#e2e8f0',
+    backgroundColor: Palette.iceBlue,
   },
   statusText: {
     fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
   },
   statusTextActive: {
-    color: '#15803d',
+    color: TicketColors.success,
   },
   statusTextMuted: {
-    color: '#475569',
+    color: TicketColors.secondary,
   },
   compactBody: {
     flex: 1,
@@ -482,7 +478,7 @@ const styles = StyleSheet.create({
   eventNameCompact: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.heavy,
-    color: '#0f172a',
+    color: TicketColors.text,
     letterSpacing: -0.3,
   },
   metaRowInline: {
@@ -494,7 +490,7 @@ const styles = StyleSheet.create({
   metaTextCompact: {
     fontSize: FontSize.xs,
     fontWeight: FontWeight.medium,
-    color: '#334155',
+    color: TicketColors.secondary,
   },
   fullBody: {
     flex: 1,
@@ -507,14 +503,14 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontStyle: 'italic',
     fontWeight: FontWeight.semibold,
-    color: '#2563eb',
+    color: TicketColors.primary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   eventNameFull: {
     fontSize: FontSize['2xl'],
     fontWeight: FontWeight.heavy,
-    color: '#0f172a',
+    color: TicketColors.text,
     letterSpacing: -0.5,
     lineHeight: 28,
   },
@@ -535,12 +531,12 @@ const styles = StyleSheet.create({
   metaTextFull: {
     fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
-    color: '#0f172a',
+    color: TicketColors.text,
   },
   metaTextSecondary: {
     fontSize: FontSize.sm,
     fontWeight: FontWeight.medium,
-    color: '#334155',
+    color: TicketColors.secondary,
   },
   footerRow: {
     flexDirection: 'row',
@@ -549,23 +545,23 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.two,
   },
   folioPill: {
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    backgroundColor: TicketColors.pill,
     borderRadius: Radius.sm,
     paddingHorizontal: Spacing.two,
     paddingVertical: 3,
     borderWidth: 1,
-    borderColor: 'rgba(15, 23, 42, 0.12)',
+    borderColor: TicketColors.border,
   },
   folioLabel: {
     fontSize: 8,
     fontWeight: FontWeight.bold,
-    color: '#64748b',
+    color: TicketColors.muted,
     letterSpacing: 0.8,
   },
   folioValue: {
     fontSize: FontSize.sm,
     fontWeight: FontWeight.heavy,
-    color: '#0f172a',
+    color: TicketColors.text,
   },
   barcodeWrap: {
     alignItems: 'center',
@@ -575,16 +571,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    backgroundColor: TicketColors.pill,
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.two,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: 'rgba(15, 23, 42, 0.12)',
+    borderColor: TicketColors.border,
   },
   openText: {
     fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
-    color: '#0f172a',
+    color: TicketColors.text,
   },
 });

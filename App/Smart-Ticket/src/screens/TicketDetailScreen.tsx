@@ -7,7 +7,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { HoloTicket } from '@/components/tickets/HoloTicket';
-import { FontSize, FontWeight, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { FontSize, FontWeight, MaxContentWidth, Radius, Spacing, TicketColors, WalletColors } from '@/constants/theme';
 import { SUPPORT_WHATSAPP_NUMBER } from '@/constants/web';
 import { useSessionContext } from '@/context/SessionContext';
 import { getLocalTicket } from '@/data/ticketRepository';
@@ -114,17 +114,17 @@ export default function TicketDetailScreen() {
                       quietZone={6}
                     />
                   </View>
-                  <Text style={[styles.qrHint, { color: '#334155' }]}>Presenta este código en el acceso</Text>
-                  <View style={[styles.offlineBadge, { backgroundColor: '#dcfce7' }]}>
-                    <SymbolView name={{ ios: 'checkmark.shield', android: 'verified_user', web: 'verified_user' }} size={16} tintColor="#15803d" />
-                    <Text style={[styles.offlineText, { color: '#15803d' }]}>Disponible sin conexión</Text>
+                  <Text style={[styles.qrHint, { color: TicketColors.secondary }]}>Presenta este código en el acceso</Text>
+                  <View style={[styles.offlineBadge, { backgroundColor: WalletColors.light.successSoft }]}>
+                    <SymbolView name={{ ios: 'checkmark.shield', android: 'verified_user', web: 'verified_user' }} size={16} tintColor={WalletColors.light.success} />
+                    <Text style={[styles.offlineText, { color: WalletColors.light.success }]}>Disponible sin conexión</Text>
                   </View>
                 </View>
               ) : (
                 <View style={[styles.inactiveQr, { backgroundColor: 'rgba(255, 255, 255, 0.65)' }]}>
-                  <SymbolView name={{ ios: 'qrcode', android: 'qr_code_2', web: 'qr_code_2' }} size={56} tintColor="#64748b" />
-                  <Text style={[styles.inactiveTitle, { color: '#0f172a' }]}>Código QR inactivo</Text>
-                  <Text style={[styles.inactiveCopy, { color: '#475569' }]}>El evento terminó o este boleto ya no está activo.</Text>
+                  <SymbolView name={{ ios: 'qrcode', android: 'qr_code_2', web: 'qr_code_2' }} size={56} tintColor={TicketColors.muted} />
+                  <Text style={[styles.inactiveTitle, { color: TicketColors.text }]}>Código QR inactivo</Text>
+                  <Text style={[styles.inactiveCopy, { color: TicketColors.secondary }]}>El evento terminó o este boleto ya no está activo.</Text>
                 </View>
               )
             }

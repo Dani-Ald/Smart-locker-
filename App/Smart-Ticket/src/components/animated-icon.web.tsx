@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { Keyframe, Easing } from 'react-native-reanimated';
 
 import classes from './animated-icon.module.css';
+import { Palette } from '@/constants/theme';
 const DURATION = 300;
 const APP_ICON = require('@/assets/images/BOT-icon.png');
 
@@ -63,7 +64,7 @@ export function AnimatedIcon() {
       </Animated.View>
 
       <Animated.View style={styles.background} entering={keyframe.duration(DURATION)}>
-        <div className={classes.expoLogoBackground} />
+        <div className={classes.expoLogoBackground} style={{ '--smart-ticket-bright-blue': Palette.brightBlue, '--smart-ticket-electric-blue': Palette.electricBlue } as React.CSSProperties} />
       </Animated.View>
 
       <Animated.View style={styles.imageContainer} entering={logoKeyframe.duration(DURATION)}>

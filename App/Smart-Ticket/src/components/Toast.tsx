@@ -24,6 +24,7 @@ import RNToast, {
 } from 'react-native-toast-message';
 
 import { Brand, FontSize, FontWeight, Radius, Shadow, Spacing } from '@/constants/theme';
+import { useWalletTheme } from '@/hooks/use-wallet-theme';
 
 // ── Tipos de toast personalizados ────────────────────────────────────────────
 
@@ -46,13 +47,14 @@ function CustomToast({
   type = 'info',
 }: ToastConfigParams<unknown> & { type: string }) {
   const meta = TYPE_META[type as ToastType] ?? TYPE_META.info;
+  const colors = useWalletTheme();
 
   return (
-    <View style={[styles.container, { borderLeftColor: meta.accent }]}>
+    <View style={[styles.container, { borderLeftColor: meta.accent, backgroundColor: colors.surface, shadowColor: colors.shadow }]}>
       <Text style={styles.icon}>{meta.icon}</Text>
       <View style={styles.textBlock}>
-        {!!text1 && <Text style={styles.title} numberOfLines={2}>{text1}</Text>}
-        {!!text2 && <Text style={styles.subtitle} numberOfLines={3}>{text2}</Text>}
+        {!!text1 && <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>{text1}</Text>}
+        {!!text2 && <Text style={[styles.subtitle, { color: colors.textSecondary }]} numberOfLines={3}>{text2}</Text>}
       </View>
     </View>
   );
@@ -133,7 +135,6 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FFFFFF',
     borderRadius: Radius.lg,
     borderLeftWidth: 4,
     paddingHorizontal: Spacing.three,
@@ -154,12 +155,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
-    color: '#111827',
     lineHeight: 20,
   },
   subtitle: {
     fontSize: FontSize.sm,
-    color: '#6B7280',
     lineHeight: 18,
   },
 });

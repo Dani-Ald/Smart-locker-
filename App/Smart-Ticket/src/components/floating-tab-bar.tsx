@@ -72,7 +72,7 @@ function TabButton({ isFocused, label, icon, colors, ...props }: TabTriggerSlotP
       <View style={[styles.iconSpace, isFocused && styles.hiddenIcon]}>
         <SymbolView name={isFocused ? icon.selected : icon.default} size={22} tintColor={isFocused ? colors.onPrimary : colors.textSecondary} />
       </View>
-      <Text numberOfLines={1} style={[styles.label, { color: isFocused ? colors.primary : colors.textSecondary }]}>{label}</Text>
+      <Text numberOfLines={1} style={[styles.label, { color: isFocused ? colors.primaryText : colors.textSecondary }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -99,7 +99,7 @@ function ActiveNotch({ selectedIndex, color }: { selectedIndex: number; color: (
   return (
     <View pointerEvents="none" style={styles.notchTrack} onLayout={(event) => { width.value = event.nativeEvent.layout.width; }}>
       <Animated.View style={[styles.notchHalo, { backgroundColor: color.background }, animatedStyle]}>
-        <View style={[styles.activeCircle, { backgroundColor: color.primary, borderColor: color.glassEdge }]}>
+        <View style={[styles.activeCircle, { backgroundColor: color.primary, borderColor: color.glassEdge, shadowColor: color.primary }]}>
           <SymbolView name={TABS[selectedIndex].icon.selected} size={23} tintColor={color.onPrimary} />
         </View>
       </Animated.View>

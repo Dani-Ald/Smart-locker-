@@ -123,7 +123,7 @@ export default function LoginScreen() {
           accessibilityLabel="Cancelar inicio de sesión"
           onPress={() => requestController?.abort()}
           style={({ pressed }) => [styles.cancelLogin, pressed && styles.pressed]}>
-          <Text style={[styles.cancelLoginText, { color: colors.primary }]}>Cancelar</Text>
+          <Text style={[styles.cancelLoginText, { color: colors.primaryText }]}>Cancelar</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -362,7 +362,7 @@ function createStyles(colors: AuthPalette) {
     cancelLogin: { minWidth: 120, minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.two, paddingHorizontal: Spacing.four, borderRadius: Radius.full, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassSurface },
     cancelLoginText: { fontSize: FontSize.base, fontWeight: FontWeight.bold },
     textButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.one },
-    link: { color: colors.primary, fontSize: FontSize.base, fontWeight: FontWeight.bold },
+    link: { color: colors.primaryText, fontSize: FontSize.base, fontWeight: FontWeight.bold },
     footerGlass: { minHeight: 48, alignSelf: 'center', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: Spacing.one, paddingHorizontal: Spacing.three, borderRadius: Radius.full, borderWidth: StyleSheet.hairlineWidth, backgroundColor: colors.glassSurface },
     footerText: { color: colors.textSecondary, fontSize: FontSize.base },
   });
